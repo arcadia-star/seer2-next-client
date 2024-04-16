@@ -6,12 +6,11 @@ const http = require('http');
 const fs = require("fs");
 const path = require("path");
 
-const packageJson = require('./package.json');
 const config = require('./config');
 const runtime = require('./runtime');
 const {bloom, md5, mime} = require('./utils');
 
-const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons/256x256.png'));
+const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/icons/256x256.png'));
 
 //版控信息
 (() => {
@@ -32,10 +31,12 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons
                 res.writeHead(200).end(config.magicUrlPath);
                 return;
             }
-            if (req.url === '/crossdomain.xml') {
+            if (req.url.startsWith("http://") || req.url === config.flashPolicyPath) {
                 res.writeHead(200, {
-                    'Content-Type': mime('.xml'), 'Connection': 'Keep-Alive', 'Keep-Alive': 'timeout=5, max=1000'
-                }).end("<?xml version=\"1.0\"?>\n" + "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">\n" + "<cross-domain-policy>\n" + "\t <allow-access-from domain=\"*\" />\n" + "</cross-domain-policy> ");
+                    'Content-Type': mime('.xml'),
+                    'Connection': 'Keep-Alive',
+                    'Keep-Alive': 'timeout=5, max=1000'
+                }).end(config.flashPolicyData);
                 return;
             }
             if (req.url === config.dynConfigUrlPath) {
@@ -54,13 +55,22 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons
             }
             const urlPath = new URL('http://localhost' + req.url).pathname;
             console.log('request:' + urlPath);
+            if (urlPath.endsWith('/')) {
+                res.writeHead(403, {
+                    'Content-Type': mime('.xml'),
+                    'Connection': 'Keep-Alive',
+                    'Keep-Alive': 'timeout=5, max=1000'
+                }).end("403");
+                return;
+            }
             let filePath = path.join(config.cacheFolderRoot, md5(urlPath.slice(1)));
             fs.stat(filePath, (err, stats) => {
+                let notInBloom = null;
+                let bloomPath = urlPath.startsWith('/seer2/') ? urlPath.slice('/seer2'.length) : urlPath;
                 if (!err) {
-                    let bloomPath0 = urlPath.startsWith('/seer2/') ? urlPath.slice('/seer2'.length) : urlPath;
-                    let bloomPath1 = bloomPath0 + '?v=' + stats.mtimeMs;
+                    let bloomPath1 = bloomPath + '?v=' + stats.mtimeMs;
                     if (!runtime.bloomContains//版控未加载
-                        || !runtime.bloomContains(bloomPath0)//非版控路径
+                        || (notInBloom = !runtime.bloomContains(bloomPath))//非版控路径
                         || runtime.bloomContains(bloomPath1)//版控
                     ) {
                         runtime.cacheMetric.hit += 1;
@@ -80,7 +90,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons
                         console.log('expire:' + filePath);
                     }
                 }
-                const fileUrl = config.rootUrl + req.url;
+                const fileUrl = notInBloom === true ? (config.seer2Root + bloomPath) : (config.rootUrl + req.url);
                 console.log('fetch:' + fileUrl);
                 fetch(fileUrl)
                     .then(response => {
@@ -142,7 +152,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons
 //界面程序
 (() => {
     runtime.app = app;
-    app.commandLine.appendSwitch('ppapi-flash-path', path.join(process.cwd(), 'flash/pepflashplayer64_34_0_0_301.dll'));
+    app.commandLine.appendSwitch('ppapi-flash-path', ppapiFlashPath());
     app.on('ready', function () {
         runtime.cacheMetric.updateDisplay = () => {
             let menu = [{
@@ -155,6 +165,10 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons
                         win.loadURL(config.entryUrl).then(() => {
                             win.setTitle(title);
                         });
+                    }
+                }, {
+                    label: 'DevTools', click() {
+                        win.webContents.openDevTools({mode: 'detach'});
                     }
                 }, {
                     label: '退出', click() {
@@ -184,7 +198,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons
             Menu.setApplicationMenu(Menu.buildFromTemplate(menu));
         }
         runtime.cacheMetric.updateDisplay();
-        let title = '阿卡迪亚:传说 by 改服项目组  ' + 'v' + packageJson.version;
+        let title = '阿卡迪亚:传说 by 改服项目组  ' + 'v' + config.version;
         let win = new BrowserWindow({
             title,
             width: 1214,
@@ -202,3 +216,15 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, 'public/icons
         runtime.exit();
     })
 })();
+
+//解析flash-dll
+function ppapiFlashPath() {
+    const appPath = app.getPath('exe');
+    const flashPath = path.join(
+        appPath.endsWith('electron.exe')
+            ? app.getAppPath()
+            : path.join(path.dirname(appPath), 'resources')
+        , 'flash/pepflashplayer64_34_0_0_301.dll');
+    console.log("flash dll:" + flashPath);
+    return flashPath;
+}

@@ -1,13 +1,11 @@
 {
   "name": "seer2-next-client",
-  "version": "1.0.0",
-  "main": "main.js",
+  "version": "1.0.1",
+  "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-packager . seer2-next-client --platform=win32 --out ./dist --overwrite",
-    "pack": "electron-builder --dir && node build.js",
-    "dist": "electron-builder --win",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "electron-webpack",
+    "build": "npm run compile && electron-builder"
   },
   "author": "ukuq",
   "license": "MIT",
@@ -17,9 +15,31 @@
     "electron-builder": "^24.13.3",
     "electron-forge": "^5.2.4",
     "electron-packager": "^17.1.2",
-    "electron-prebuilt-compile": "8.2.0"
+    "electron-prebuilt-compile": "8.2.0",
+    "electron-webpack": "^2.8.2"
   },
   "dependencies": {
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "source-map-support": "^0.5.21"
+  },
+  "electronWebpack": {
+    "commonSourceDirectory": "common",
+    "main": {
+      "sourceDirectory": "src/main/"
+    },
+    "renderer": {
+      "sourceDirectory": null
+    }
+  },
+  "build": {
+    "files": [
+      "dist/main/main.js"
+    ],
+    "extraResources": [
+      "flash"
+    ],
+    "extraMetadata": {
+      "main": "dist/main/main.js"
+    }
   }
 }
