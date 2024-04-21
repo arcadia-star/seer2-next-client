@@ -3,17 +3,27 @@ const runtime = {
     server: null,
     app: null,
     win: null,
-    cacheMetric: {hit: 0, cache: 0, expire: 0, updateDisplay: () => 0},
+    cacheMetric: {hit: 0, cache: 0, expire: 0, check: 0, unchanged: 0, changed: 0, updateDisplay: () => 0},
 }
+
+runtime.load = (url) => {
+    runtime.win.loadURL(url);
+}
+
 runtime.exit = () => {
     process.platform !== 'darwin' && runtime.server && runtime.server.close();
     runtime.app && runtime.app.quit();
 }
+
 runtime.constants = {
     hit: 'hit',
     cache: 'cache',
     expire: 'expire',
+    check: 'check',
+    unchanged: 'unchanged',
+    changed: 'changed',
 }
+
 runtime.reportMetric = (type) => {
     runtime.cacheMetric[type] += 1;
     runtime.cacheMetric.updateDisplay()

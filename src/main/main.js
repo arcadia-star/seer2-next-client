@@ -1,4 +1,3 @@
-//thx: https://github.com/tootyta/FlashBrowser2
 const {app, BrowserWindow, Menu, dialog, session, nativeImage} = require('electron');
 const {autoUpdater} = require("electron-updater");
 const fetch = require('node-fetch');
@@ -18,22 +17,18 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
     fetch(config.bloomUrl)
         .then(e => e.text())
         .then(e => runtime.bloomContains = bloom(e))
-        .then(e => {
+        .then(() => {
             if (!runtime.bloomContains('/version/seer2-next-client/v' + config.version)) {
                 dialog.showErrorBox('版本错误', '当前版本已被禁用, 建议下载最新版本');
                 app.exit();
             } else {
-                runtime.win.loadURL(config.entryUrl).then(() => {
-                    runtime.win.setTitle(config.winTitle);
-                });
+                runtime.load(config.entryUrl);
             }
         })
         .catch(e => {
             console.log(e);
             dialog.showErrorBox('加载错误', '版控配置加载失败, 降级为改服主页');
-            runtime.win.loadURL(config.nextRootUrl).then(() => {
-                runtime.win.setTitle(config.winTitle);
-            });
+            runtime.load(config.nextRootUrl);
         })
 })();
 
@@ -45,7 +40,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                 res.writeHead(200).end(config.magicUrlPath);
                 return;
             }
-            if (req.url.startsWith("http://") || req.url === config.flashPolicyPath) {
+            if (req.url === config.flashPolicyPath) {
                 res.writeHead(200, {
                     'Content-Type': mime('.xml'), 'Connection': 'Keep-Alive', 'Keep-Alive': 'timeout=5, max=1000'
                 }).end(config.flashPolicyData);
@@ -65,13 +60,26 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     });
                 return;
             }
+            if (req.url === new URL(config.bloomUrl).pathname) {
+                fetch(config.bloomUrl)
+                    .then(response => {
+                        res.writeHead(response.status, {
+                            'Connection': 'Keep-Alive',
+                            'Keep-Alive': 'timeout=5, max=1000'
+                        });
+                        response.buffer().then(buffer => {
+                            res.end(buffer);
+                        })
+                    });
+                return;
+            }
             if (req.url.endsWith('/') || req.url.endsWith('\\') || !req.url.startsWith('/seer2/')) {
                 res.writeHead(403).end('not a valid path');
                 return;
             }
             const urlPath = new URL('http://localhost' + req.url).pathname;
             console.log('request:' + urlPath);
-            const filePath = path.join(config.cacheFolderRoot, md5(urlPath.slice(1)));
+            const filePath = path.join(config.cacheFolderRoot, md5(urlPath.slice(1)) + '_' + urlPath.length);
             fs.stat(filePath, (err, stats) => {
                 //非文件不存在
                 if (err && err.code !== 'ENOENT') {
@@ -174,15 +182,11 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
             let menu = [{
                 label: '主菜单:)', submenu: [{
                     label: '改服主页', click() {
-                        runtime.win.loadURL(config.nextRootUrl).then(() => {
-                            runtime.win.setTitle(config.winTitle);
-                        });
+                        runtime.load(config.nextRootUrl);
                     }
                 }, {
                     label: '刷新游戏', click() {
-                        runtime.win.loadURL(config.entryUrl).then(() => {
-                            runtime.win.setTitle(config.winTitle);
-                        });
+                        runtime.load(config.entryUrl);
                     }
                 }, {
                     label: 'DevTools', click() {
@@ -202,7 +206,8 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     runtime.win.setSize(1214, 697, true);
                 }
             }, {
-                label: `缓存信息 hit:${runtime.cacheMetric.hit}, expire:${runtime.cacheMetric.expire}, cache:${runtime.cacheMetric.cache}`,
+                label: `缓存信息 hit:${runtime.cacheMetric.hit}, expire:${runtime.cacheMetric.expire}, cache:${runtime.cacheMetric.cache}`
+                    + `, check:${runtime.cacheMetric.check}, unchanged:${runtime.cacheMetric.unchanged}, changed:${runtime.cacheMetric.changed}`,
                 submenu: [{
                     label: '清空浏览器缓存', click() {
                         session.defaultSession.clearCache();
@@ -218,6 +223,8 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
         runtime.cacheMetric.updateDisplay();
         runtime.win = new BrowserWindow({
             title: config.winTitle, width: 1214, height: 697, webPreferences: {plugins: true}, icon: appIcon
+        }).on('page-title-updated', (evt) => {
+            evt.preventDefault();
         });
     })
     app.on('window-all-closed', () => {
@@ -261,7 +268,7 @@ function asyncCacheFile(urlPath, filePath, buffer, mtime) {
                     console.error(PREFIX + "file utime error", urlPath, err);
                 }
             });
-            console.log(PREFIX + 'write:' + urlPath + ", mtime:" + mtime.valueOf());
+            console.log(PREFIX + 'write:' + urlPath + ", mtime:" + mtime.valueOf() + ", file:" + filePath);
             runtime.reportMetric(runtime.constants.cache);
         })
     }
@@ -271,6 +278,7 @@ function asyncCacheFile(urlPath, filePath, buffer, mtime) {
 //异步检查缓存
 function asyncCheckCache(urlPath, seer2Path, filePath, mtime) {
     const PREFIX = "async-check-file: ";
+    runtime.reportMetric(runtime.constants.check);
     fetch(config.seer2RootUrl + seer2Path, {
         headers: {
             'If-Modified-Since': mtime.toUTCString()
@@ -278,6 +286,7 @@ function asyncCheckCache(urlPath, seer2Path, filePath, mtime) {
     }).then(response => {
         if (response.status === 304) {
             console.log(PREFIX + "file not change", urlPath);
+            runtime.reportMetric(runtime.constants.unchanged);
             return;
         }
         if (response.status !== 200) {
@@ -287,9 +296,11 @@ function asyncCheckCache(urlPath, seer2Path, filePath, mtime) {
         const lastModified = new Date(response.headers.get('Last-Modified') || Date.now());
         if (lastModified.valueOf() === mtime.valueOf()) {
             console.log(PREFIX + "mtime not change", urlPath);
+            runtime.reportMetric(runtime.constants.unchanged);
             return;
         }
         console.log(PREFIX + "file has changed", urlPath);
+        runtime.reportMetric(runtime.constants.changed);
         response.buffer().then(buffer => {
             asyncCacheFile(Buffer.concat([new Uint8Array(urlPath.length), buffer]), filePath, buffer, lastModified);
         });
