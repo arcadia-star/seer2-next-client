@@ -3,7 +3,9 @@ const runtime = {
     server: null,
     app: null,
     win: null,
+    rootUrl: null,
     cacheMetric: {hit: 0, cache: 0, expire: 0, check: 0, unchanged: 0, changed: 0, updateDisplay: () => 0},
+    highFrequencyFileCache: {},
 }
 
 runtime.load = (url) => {
@@ -11,8 +13,8 @@ runtime.load = (url) => {
 }
 
 runtime.exit = () => {
-    process.platform !== 'darwin' && runtime.server && runtime.server.close();
-    runtime.app && runtime.app.quit();
+    runtime.server && runtime.server.close();
+    process.platform !== 'darwin' && runtime.app && runtime.app.quit();
 }
 
 runtime.constants = {
