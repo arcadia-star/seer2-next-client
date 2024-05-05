@@ -6,6 +6,7 @@ const path = require("path");
 const config = require('./config');
 const runtime = require('./runtime');
 const server = require('./server');
+const userData = require('./userdata');
 
 const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/icons/256x256.png'));
 
@@ -17,7 +18,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
     app.on('ready', function () {
         runtime.cacheMetric.updateDisplay = () => {
             let menu = [{
-                label: '主菜单:)', submenu: [{
+                label: ':)主菜单', submenu: [{
                     label: '改服主页', click() {
                         runtime.load(config.nextRootUrl);
                     }
@@ -26,8 +27,8 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                         runtime.load(config.entryUrl);
                     }
                 }, {
-                    label: 'DevTools', click() {
-                        runtime.win.webContents.openDevTools({mode: 'detach'});
+                    label: '赛尔号，启动！', click() {
+                        runtime.load('https://seer.61.com/play.shtml');
                     }
                 }, {
                     label: '退出', click() {
@@ -35,15 +36,32 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     }
                 }]
             }, {
-                label: '2k-100%', click() {
-                    runtime.win.setSize(1216, 699, true);
-                }
+                label: ':)调整窗口',
+                submenu: [
+                    {
+                        label: '2k-100%',
+                        click() {
+                            const windowSize = {width: 1216, height: 699};
+                            runtime.win.setSize(windowSize.width, windowSize.height, true);
+                            userData.windowSize(windowSize);
+                        }
+                    },
+                    {
+                        label: '2k-150%',
+                        click() {
+                            const windowSize = {width: 1214, height: 697};
+                            runtime.win.setSize(windowSize.width, windowSize.height, true);
+                            userData.windowSize(windowSize);
+                        }
+                    },
+                    {
+                        label: 'DevTools', click() {
+                            runtime.win.webContents.openDevTools({mode: 'detach'});
+                        }
+                    }
+                ]
             }, {
-                label: '2k-150%', click() {
-                    runtime.win.setSize(1214, 697, true);
-                }
-            }, {
-                label: `缓存信息 hit:${runtime.cacheMetric.hit}, expire:${runtime.cacheMetric.expire}, cache:${runtime.cacheMetric.cache}`
+                label: `:)缓存信息 hit:${runtime.cacheMetric.hit}, expire:${runtime.cacheMetric.expire}, cache:${runtime.cacheMetric.cache}`
                     + `, check:${runtime.cacheMetric.check}, unchanged:${runtime.cacheMetric.unchanged}, changed:${runtime.cacheMetric.changed}`,
                 submenu: [{
                     label: '清空浏览器缓存', click() {
@@ -58,8 +76,13 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
             Menu.setApplicationMenu(Menu.buildFromTemplate(menu));
         }
         runtime.cacheMetric.updateDisplay();
+        const windowSize = userData.windowSize();
         runtime.win = new BrowserWindow({
-            title: config.winTitle, width: 1214, height: 697, webPreferences: {plugins: true}, icon: appIcon
+            title: config.winTitle,
+            width: windowSize.width || 1214,
+            height: windowSize.height || 697,
+            webPreferences: {contextIsolation: true, plugins: true},
+            icon: appIcon
         }).on('page-title-updated', (evt) => {
             evt.preventDefault();
         });
