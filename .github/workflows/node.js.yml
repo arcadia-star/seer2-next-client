@@ -1,0 +1,25 @@
+# https://github.com/marketplace/actions/electron-builder-action
+
+name: Build/release
+
+on: workflow_dispatch
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v1
+
+      - name: Install Node.js, NPM and Yarn
+        uses: actions/setup-node@v1
+        with:
+          node-version: 22
+
+      - name: Build/release Electron app
+        run: npm i --include-dev && npm run build
