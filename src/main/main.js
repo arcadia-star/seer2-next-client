@@ -1,4 +1,5 @@
 const {app, BrowserWindow, Menu, dialog, session, nativeImage} = require('electron');
+const openAboutWindow = require("about-window").default;
 
 const fs = require("fs");
 const path = require("path");
@@ -19,7 +20,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
         runtime.cacheMetric.updateDisplay = () => {
             let menu = [{
                 label: ':)主菜单', submenu: [{
-                    label: '改服主页', click() {
+                    label: '★改服主页', click() {
                         runtime.load(config.nextRootUrl);
                     }
                 }, {
@@ -29,6 +30,10 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                 }, {
                     label: '赛尔号，启动！', click() {
                         runtime.load('https://seer.61.com/play.shtml');
+                    }
+                }, {
+                    label: '★下载更新', click() {
+                        runtime.load('https://github.com/arcadia-star/seer2-next-client-release/releases')
                     }
                 }, {
                     label: '退出', click() {
@@ -57,6 +62,14 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     {
                         label: 'DevTools', click() {
                             runtime.win.webContents.openDevTools({mode: 'detach'});
+                        }
+                    },
+                    {
+                        label: 'Abort', click() {
+                            openAboutWindow({
+                                icon_path: path.resolve(__dirname, '../../build/icons/256x256xR.png'),
+                                use_version_info: true,
+                            });
                         }
                     }
                 ]
