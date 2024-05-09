@@ -67,7 +67,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     {
                         label: 'Abort', click() {
                             openAboutWindow({
-                                icon_path: path.resolve(__dirname, '../../build/icons/256x256xR.png'),
+                                icon_path: pathResolve('static/256x256xR.png'),
                                 use_version_info: true,
                             });
                         }
@@ -111,10 +111,15 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
     });
 })();
 
+//解析运行时文件资源路径
+function pathResolve(p) {
+    const pp = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources') : app.getAppPath();
+    const p1 = path.join(pp, 'runtime', p);
+    console.log("path resolve:" + p1);
+    return p1;
+}
+
 //解析flash-dll
 function ppapiFlashPath() {
-    const appPath = app.getPath('exe');
-    const flashPath = path.join(appPath.endsWith('electron.exe') ? app.getAppPath() : path.join(path.dirname(appPath), 'resources'), 'flash/pepflashplayer64_34_0_0_301.dll');
-    console.log("flash dll:" + flashPath);
-    return flashPath;
+    return pathResolve('flash/pepflashplayer64_34_0_0_301.dll');
 }
