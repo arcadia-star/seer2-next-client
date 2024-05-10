@@ -67,7 +67,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     {
                         label: 'Abort', click() {
                             openAboutWindow({
-                                icon_path: pathResolve('static/256x256xR.png'),
+                                icon_path: pathResolve('common/256x256xR.png'),
                                 use_version_info: true,
                             });
                         }
@@ -111,15 +111,31 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
     });
 })();
 
+//解析文件资源路径
+function appResourcesPath() {
+    switch (process.platform) {
+        case 'win32':
+            return app.isPackaged ? path.resolve(app.getPath('exe'), '../resources') : app.getAppPath();
+        case 'darwin':
+            return app.isPackaged ? path.resolve(app.getPath('exe'), '../../Resources') : app.getAppPath();
+    }
+    throw 'unknown platform:' + process.platform;
+}
+
 //解析运行时文件资源路径
 function pathResolve(p) {
-    const pp = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources') : app.getAppPath();
-    const p1 = path.join(pp, 'runtime', p);
+    const p1 = path.join(appResourcesPath(), 'runtime', p);
     console.log("path resolve:" + p1);
     return p1;
 }
 
 //解析flash-dll
 function ppapiFlashPath() {
-    return pathResolve('flash/pepflashplayer64_34_0_0_301.dll');
+    switch (process.platform) {
+        case 'win32':
+            return pathResolve('win/pepflashplayer64_34_0_0_301.dll');
+        case 'darwin':
+            return pathResolve('mac/flash.plugin');
+    }
+    throw 'unknown platform:' + process.platform;
 }
