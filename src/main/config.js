@@ -14,7 +14,7 @@ config.version = packageJson.version;
 config.bloomPath = '/config/bloom-path.data';
 config.dynConfigPath = '/config/dyn-client-config.xml';
 config.magicUrl = 'http://' + config.serverHost + ':' + config.serverPort + config.magicUrlPath;
-config.entryUrl = 'http://' + config.serverHost + ':' + config.serverPort + config.rootUrlPath + '/play-local.html';
+config.entryUrl = 'http://' + config.serverHost + ':' + config.serverPort + config.rootUrlPath + '/play-local.html?version=' + packageJson.version;
 config.cacheFolderRoot = path.join(app.getPath('userData'), config.cacheFolder);
 config.seer2RootUrl = 'http://seer2.61.com';
 config.nextRootUrl = "http://733702.xyz";
