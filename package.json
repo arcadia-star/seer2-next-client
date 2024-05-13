@@ -1,10 +1,10 @@
 {
   "name": "seer2-next-client",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "compile": "electron-webpack",
+    "compile": "electron-webpack && javascript-obfuscator dist/main/main.js --compact true --self-defending false",
     "build": "npm run compile && electron-builder",
     "release": "npm run compile && electron-builder --publish always"
   },
@@ -15,6 +15,7 @@
     "electron": "^11.5.0",
     "electron-builder": "^24.13.3",
     "electron-webpack": "^2.8.2",
+    "javascript-obfuscator": "^4.1.0",
     "xml2json": "^0.12.0"
   },
   "dependencies": {
@@ -34,18 +35,26 @@
     }
   },
   "build": {
-    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
     "files": [
-      "dist/main/main.js"
+      "dist/main/main-obfuscated.js"
     ],
     "extraResources": [
       "runtime/common"
     ],
     "extraMetadata": {
-      "main": "dist/main/main.js"
+      "main": "dist/main/main-obfuscated.js"
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
       "extraResources": [
         "runtime/win"
       ]

@@ -8,19 +8,20 @@ const config = {
     serverHost: '127.0.0.1',
     serverPort: 7337,
     cacheFolder: 'Game Cache',
-    magicUrlPath: '/seer2-next-client-hello?v=' + packageJson.version,
+    magicUrlPath: '/seer2-next-client-hello',
 }
 config.version = packageJson.version;
 config.bloomPath = '/config/bloom-path.data';
 config.dynConfigPath = '/config/dyn-client-config.xml';
-config.magicUrl = 'http://' + config.serverHost + ':' + config.serverPort + config.magicUrlPath;
-config.entryUrl = 'http://' + config.serverHost + ':' + config.serverPort + config.rootUrlPath + '/play-local.html?version=' + packageJson.version;
+config.magicUrl = `http://${config.serverHost}:${config.serverPort}${config.magicUrlPath}`;
+config.entryUrl = `http://${config.serverHost}:${config.serverPort}${config.rootUrlPath}/play-local.html`;
+config.entryUrlWithVersion = `${config.entryUrl}?version=${config.version}&platform=${process.platform}&arch=${process.arch}`;
 config.cacheFolderRoot = path.join(app.getPath('userData'), config.cacheFolder);
 config.seer2RootUrl = 'http://seer2.61.com';
 config.nextRootUrl = "http://733702.xyz";
 config.flashPolicyPath = '/crossdomain.xml';
 config.flashPolicyData = '<?xml version="1.0"?><!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd"><cross-domain-policy><allow-access-from domain="*" /></cross-domain-policy>';
-config.winTitle = '阿卡迪亚:传说 by 改服项目组 ' + 'v' + config.version;
+config.winTitle = `阿卡迪亚:传说 by 改服项目组 v${config.version} ${process.platform}-${process.arch}`;
 config.highFrequencyFile = [
     '/res/loaderLibrary/rightToolbar/1.swf',
     '/res/loaderLibrary/rightToolbar/2.swf',

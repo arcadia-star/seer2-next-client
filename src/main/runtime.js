@@ -14,7 +14,7 @@ runtime.load = (url) => {
 
 runtime.exit = () => {
     runtime.server && runtime.server.close();
-    process.platform !== 'darwin' && runtime.app && runtime.app.quit();
+    runtime.app && runtime.app.quit();
 }
 
 runtime.constants = {

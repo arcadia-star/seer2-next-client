@@ -32,6 +32,10 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                         runtime.load('https://seer.61.com/play.shtml');
                     }
                 }, {
+                    label: '原神，启动！', click() {
+                        runtime.load('https://ys.mihoyo.com/cloud/');
+                    }
+                }, {
                     label: '★下载更新', click() {
                         runtime.load('https://github.com/arcadia-star/seer2-next-client-release/releases')
                     }
@@ -104,6 +108,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
             runtime.load(config.entryUrl);
         }).catch(err => {
             dialog.showErrorBox('启动失败', err);
+            runtime.exit();
         });
     })
     app.on('window-all-closed', () => {
@@ -133,7 +138,14 @@ function pathResolve(p) {
 function ppapiFlashPath() {
     switch (process.platform) {
         case 'win32':
-            return pathResolve('win/pepflashplayer64_34_0_0_301.dll');
+            switch (process.arch) {
+                case 'ia32':
+                case 'x32':
+                    return pathResolve('win/pepflashplayer32_34_0_0_308.dll');
+                case 'x64':
+                    return pathResolve('win/pepflashplayer64_34_0_0_308.dll');
+            }
+            throw 'unknown arch:' + process.arch;
         case 'darwin':
             return pathResolve('mac/flash.plugin');
     }

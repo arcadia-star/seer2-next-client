@@ -144,7 +144,7 @@ async function createServer() {
         const server = http.createServer()
             .on('request', (req, res) => {
                 if (req.url === config.magicUrlPath) {
-                    res.writeHead(200).end(config.magicUrlPath);
+                    res.writeHead(200).end({version: config.version});
                     return;
                 }
                 if (req.url === config.flashPolicyPath) {
@@ -159,6 +159,10 @@ async function createServer() {
                 }
                 const urlPath = new URL('http://localhost' + req.url).pathname;
                 console.log('request:' + urlPath);
+                if (req.url === new URL(config.entryUrl).pathname) {
+                    res.writeHead(302, {location: config.entryUrlWithVersion}).end(config.entryUrlWithVersion);
+                    return;
+                }
                 if (req.url === config.dynConfigPath) {
                     fetch(runtime.rootUrl + config.dynConfigPath)
                         .then(response => {
@@ -279,9 +283,9 @@ async function createServer() {
             .on('error', (err) => {
                 if (err.code === 'EADDRINUSE') {
                     fetch(config.magicUrl)
-                        .then(e => e.text())
+                        .then(e => e.json())
                         .then(e => {
-                            if (e !== config.magicUrlPath) {
+                            if (e.version !== config.version) {
                                 reject('本地服务器端口被占用');
                             }
                         })
