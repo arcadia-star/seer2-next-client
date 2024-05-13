@@ -2,7 +2,10 @@
 
 name: Build/release
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - 'main'
 
 jobs:
   release:
@@ -24,6 +27,4 @@ jobs:
       - name: Build/release Electron app
         run: npm i --include-dev && npm run release
         env:
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          GITHUB_TOKEN: ${{ secrets.github_token }}
+          GITHUB_TOKEN: ${{ secrets.SEER2_NEXT_CLIENT_RELEASE_GH_TOKEN }}
