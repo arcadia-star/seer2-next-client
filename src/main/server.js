@@ -12,17 +12,23 @@ async function load() {
     //dns
     runtime.rootUrl = await dnsLookup(config.rootUrlHost)
         .then(address => `http://${address}${config.rootUrlPath}`)
-        .catch(() => Promise.reject('dns解析失败'));
+        .catch(() => Promise.reject({msg: 'dns解析失败，检查下网络设置'}));
 
     //版控
     runtime.bloomContains = await fetch(runtime.rootUrl + config.bloomPath)
         .then(e => e.text())
-        .then(e => bloom(e))
-        .catch(() => Promise.reject('版控文件加载失败'));
+        .catch(() => Promise.reject({msg: '版控文件加载失败，重启软件试试'}))
+        .then(e => Promise.resolve(e)
+            .then(e => bloom(e))
+            .catch(() => Promise.reject({msg: '版控文件解析失败，联系管理员'}))
+        );
 
     //强版控
     if (!runtime.bloomContains('/version/seer2-next-client/v' + config.version)) {
-        return Promise.reject('当前版本已被禁用, 建议下载最新版本');
+        return Promise.reject({
+            msg: '当前版本已被禁用, 建议下载最新版本',
+            openExternal: 'https://github.com/arcadia-star/seer2-next-client-release/releases'
+        });
     }
 
     //server
@@ -144,7 +150,7 @@ async function createServer() {
         const server = http.createServer()
             .on('request', (req, res) => {
                 if (req.url === config.magicUrlPath) {
-                    res.writeHead(200).end({version: config.version});
+                    res.writeHead(200).end(JSON.stringify({version: config.version}));
                     return;
                 }
                 if (req.url === config.flashPolicyPath) {
@@ -286,16 +292,18 @@ async function createServer() {
                         .then(e => e.json())
                         .then(e => {
                             if (e.version !== config.version) {
-                                reject('本地服务器端口被占用');
+                                reject({msg: '本地服务器端口被占用'});
+                            } else {
+                                resolve(server);
                             }
                         })
                         .catch(err => {
                             console.log(err);
-                            reject('本地服务器启动异常');
+                            reject({msg: '本地服务器启动异常'});
                         })
                 } else {
                     console.log(err);
-                    reject('本地服务器启动失败');
+                    reject({msg: '本地服务器启动失败'});
                 }
             })
             .listen(config.serverPort, config.serverHost);

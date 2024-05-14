@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Menu, dialog, session, nativeImage} = require('electron');
+const {app, BrowserWindow, Menu, dialog, shell, session, nativeImage} = require('electron');
 const openAboutWindow = require("about-window").default;
 
 const fs = require("fs");
@@ -107,8 +107,14 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
             console.log("start success");
             runtime.load(config.entryUrl);
         }).catch(err => {
-            dialog.showErrorBox('启动失败', err);
-            runtime.exit();
+            dialog.showErrorBox('启动失败', err.msg);
+            if (err.openExternal) {
+                shell.openExternal(err.openExternal).catch(a => a).then(() => {
+                    runtime.exit();
+                });
+            } else {
+                runtime.exit();
+            }
         });
     })
     app.on('window-all-closed', () => {
