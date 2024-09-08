@@ -48,19 +48,9 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                 label: ':)调整窗口',
                 submenu: [
                     {
-                        label: '2k-100%',
+                        label: 'Reset',
                         click() {
-                            const windowSize = {width: 1216, height: 699};
-                            runtime.win.setSize(windowSize.width, windowSize.height, true);
-                            userData.windowSize(windowSize);
-                        }
-                    },
-                    {
-                        label: '2k-150%',
-                        click() {
-                            const windowSize = {width: 1214, height: 697};
-                            runtime.win.setSize(windowSize.width, windowSize.height, true);
-                            userData.windowSize(windowSize);
+                            runtime.win.setContentSize(1200, 660, true);
                         }
                     },
                     {
@@ -93,11 +83,11 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
             Menu.setApplicationMenu(Menu.buildFromTemplate(menu));
         }
         runtime.cacheMetric.updateDisplay();
-        const windowSize = userData.windowSize();
         runtime.win = new BrowserWindow({
             title: config.winTitle,
-            width: windowSize.width || 1214,
-            height: windowSize.height || 697,
+            useContentSize: true,
+            width: 1200,
+            height: 660,
             webPreferences: {contextIsolation: true, plugins: true},
             icon: appIcon
         }).on('page-title-updated', (evt) => {
