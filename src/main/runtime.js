@@ -4,6 +4,7 @@ const runtime = {
     app: null,
     win: null,
     rootUrl: null,
+    proxyFileRoot: null,
     cacheMetric: {hit: 0, cache: 0, expire: 0, check: 0, unchanged: 0, changed: 0, updateDisplay: () => 0},
     highFrequencyFileCache: {},
 }

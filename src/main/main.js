@@ -19,13 +19,18 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
     app.on('ready', function () {
         runtime.cacheMetric.updateDisplay = () => {
             let menu = [{
-                label: ':)主菜单', submenu: [{
-                    label: '★改服主页', click() {
-                        runtime.load(config.nextRootUrl);
+                label: '🙈主菜单',
+                submenu: [{
+                    label: '刷新网页', click() {
+                        runtime.win.reload();
                     }
                 }, {
-                    label: '刷新游戏', click() {
+                    label: '★游戏主页', click() {
                         runtime.load(config.entryUrl);
+                    }
+                }, {
+                    label: '★改服主页', click() {
+                        runtime.load(config.nextRootUrl);
                     }
                 }, {
                     label: '赛尔号，启动！', click() {
@@ -45,7 +50,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     }
                 }]
             }, {
-                label: ':)调整窗口',
+                label: '🙉调整窗口',
                 submenu: [
                     {
                         label: 'Reset',
@@ -68,8 +73,8 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     }
                 ]
             }, {
-                label: `:)缓存信息 hit:${runtime.cacheMetric.hit}, expire:${runtime.cacheMetric.expire}, cache:${runtime.cacheMetric.cache}`
-                    + `, check:${runtime.cacheMetric.check}, unchanged:${runtime.cacheMetric.unchanged}, changed:${runtime.cacheMetric.changed}`,
+                label: `🙊缓存信息 [hit:${runtime.cacheMetric.hit}, expired:${runtime.cacheMetric.expire}, cached:${runtime.cacheMetric.cache}`
+                    + `, check:${runtime.cacheMetric.check}, unchanged:${runtime.cacheMetric.unchanged}, changed:${runtime.cacheMetric.changed}]`,
                 submenu: [{
                     label: '清空浏览器缓存', click() {
                         session.defaultSession.clearCache();
@@ -79,6 +84,27 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                         fs.rmdir(config.cacheFolderRoot, {recursive: true}, (err) => err && console.log(err));
                     }
                 }]
+            }, {
+                label: '🐵本地代理 ' + (runtime.proxyFileRoot ?? 'close'),
+                submenu: [
+                    {
+                        label: '设置代理',
+                        click() {
+                            let dir = dialog.showOpenDialogSync({properties: ['openDirectory']});
+                            console.info('open directory:' + dir);
+                            if (dir) {
+                                runtime.proxyFileRoot = dir[0];
+                            }
+                            runtime.cacheMetric.updateDisplay();
+                        }
+                    },
+                    {
+                        label: '关闭代理', click() {
+                            runtime.proxyFileRoot = null;
+                            runtime.cacheMetric.updateDisplay();
+                        }
+                    }
+                ]
             }]
             Menu.setApplicationMenu(Menu.buildFromTemplate(menu));
         }
@@ -137,9 +163,9 @@ function ppapiFlashPath() {
             switch (process.arch) {
                 case 'ia32':
                 case 'x32':
-                    return pathResolve('win/pepflashplayer32_34_0_0_308.dll');
+                    return pathResolve('win/pepflashplayer32_34_0_0_321.dll');
                 case 'x64':
-                    return pathResolve('win/pepflashplayer64_34_0_0_308.dll');
+                    return pathResolve('win/pepflashplayer64_34_0_0_321.dll');
             }
             throw 'unknown arch:' + process.arch;
         case 'darwin':

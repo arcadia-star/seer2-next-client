@@ -165,6 +165,20 @@ async function createServer() {
                 }
                 const urlPath = new URL('http://localhost' + req.url).pathname;
                 console.log('request:' + urlPath);
+                if (runtime.proxyFileRoot) {
+                    let filePath = runtime.proxyFileRoot + urlPath;
+                    if (fs.existsSync(filePath)) {
+                        console.info("proxy file:", urlPath);
+                        let file = fs.createReadStream(filePath);
+                        res.writeHead(200, {
+                            'Content-Type': mime(urlPath),
+                            'Connection': 'Keep-Alive',
+                            'Keep-Alive': 'timeout=5, max=1000'
+                        });
+                        file.pipe(res);
+                        return;
+                    }
+                }
                 if (req.url === new URL(config.entryUrl).pathname) {
                     res.writeHead(302, {location: config.entryUrlWithVersion}).end(config.entryUrlWithVersion);
                     return;
