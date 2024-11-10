@@ -4,6 +4,7 @@ const path = require("path");
 const dns = require('dns');
 
 const config = require('./config');
+const userData = require('./userdata');
 const runtime = require('./runtime');
 const {bloom, md5, mime} = require('./utils');
 const fetch = require("node-fetch");
@@ -137,7 +138,7 @@ async function dnsLookup(host) {
         dns.lookup(host, {}, (err, address) => {
             console.log('dns lookup: %s %j', host, address);
             if (err) {
-                resolve(err);
+                reject(err);
             } else {
                 resolve(address);
             }
@@ -165,15 +166,16 @@ async function createServer() {
                 }
                 const urlPath = new URL('http://localhost' + req.url).pathname;
                 console.log('request:' + urlPath);
-                if (runtime.proxyFileRoot) {
-                    let filePath = runtime.proxyFileRoot + urlPath;
+                if (userData.proxyFileRoot) {
+                    let filePath = userData.proxyFileRoot + urlPath;
                     if (fs.existsSync(filePath)) {
                         console.info("proxy file:", urlPath);
                         let file = fs.createReadStream(filePath);
                         res.writeHead(200, {
                             'Content-Type': mime(urlPath),
                             'Connection': 'Keep-Alive',
-                            'Keep-Alive': 'timeout=5, max=1000'
+                            'Keep-Alive': 'timeout=5, max=1000',
+                            'X-Hit': 'proxy',
                         });
                         file.pipe(res);
                         return;
@@ -219,7 +221,8 @@ async function createServer() {
                     res.writeHead(200, {
                         'Content-Type': mime(urlPath),
                         'Connection': 'Keep-Alive',
-                        'Keep-Alive': 'timeout=5, max=1000'
+                        'Keep-Alive': 'timeout=5, max=1000',
+                        'X-Hit': 'cache',
                     }).end(hfCache);
                     return;
                 }
@@ -248,7 +251,8 @@ async function createServer() {
                             res.writeHead(200, {
                                 'Content-Type': mime(urlPath),
                                 'Connection': 'Keep-Alive',
-                                'Keep-Alive': 'timeout=5, max=1000'
+                                'Keep-Alive': 'timeout=5, max=1000',
+                                'X-Hit': 'file',
                             });
                             file.pipe(res);
                         }
@@ -284,7 +288,8 @@ async function createServer() {
                             'Content-Type': ctHeader,
                             'Last-Modified': lastModified.toUTCString(),
                             'Connection': 'Keep-Alive',
-                            'Keep-Alive': 'timeout=5, max=1000'
+                            'Keep-Alive': 'timeout=5, max=1000',
+                            'X-Hit': 'fetch',
                         });
                         response.buffer().then(buffer => {
                             if (response.status === 200) {

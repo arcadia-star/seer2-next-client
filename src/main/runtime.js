@@ -4,9 +4,9 @@ const runtime = {
     app: null,
     win: null,
     rootUrl: null,
-    proxyFileRoot: null,
-    cacheMetric: {hit: 0, cache: 0, expire: 0, check: 0, unchanged: 0, changed: 0, updateDisplay: () => 0},
+    cacheMetric: {hit: 0, cache: 0, expire: 0, check: 0, unchanged: 0, changed: 0},
     highFrequencyFileCache: {},
+    refreshMenu: () => null,
 }
 
 runtime.load = (url) => {
@@ -29,6 +29,6 @@ runtime.constants = {
 
 runtime.reportMetric = (type) => {
     runtime.cacheMetric[type] += 1;
-    runtime.cacheMetric.updateDisplay()
+    runtime.refreshMenu();
 }
 module.exports = runtime;

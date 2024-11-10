@@ -11,13 +11,16 @@ const userData = require('./userdata');
 
 const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/icons/256x256.png'));
 
+//用户配置
+userData.load();
+
 //界面程序
 (() => {
     runtime.app = app;
     app.allowRendererProcessReuse = true;
     app.commandLine.appendSwitch('ppapi-flash-path', ppapiFlashPath());
     app.on('ready', function () {
-        runtime.cacheMetric.updateDisplay = () => {
+        runtime.refreshMenu = () => {
             let menu = [{
                 label: '🙈主菜单',
                 submenu: [{
@@ -43,6 +46,10 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                 }, {
                     label: '★下载更新', click() {
                         runtime.load('https://github.com/arcadia-star/seer2-next-client-release/releases')
+                    }
+                }, {
+                    label: '★下载更新(网盘)', click() {
+                        runtime.load('https://www.123865.com/s/QwODjv-AjoJh')
                     }
                 }, {
                     label: '退出', click() {
@@ -74,7 +81,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                 ]
             }, {
                 label: `🙊缓存信息 [hit:${runtime.cacheMetric.hit}, expired:${runtime.cacheMetric.expire}, cached:${runtime.cacheMetric.cache}`
-                    + `, check:${runtime.cacheMetric.check}, unchanged:${runtime.cacheMetric.unchanged}, changed:${runtime.cacheMetric.changed}]`,
+                    + `, checked:${runtime.cacheMetric.check}, unchanged:${runtime.cacheMetric.unchanged}, changed:${runtime.cacheMetric.changed}]`,
                 submenu: [{
                     label: '清空浏览器缓存', click() {
                         session.defaultSession.clearCache();
@@ -85,7 +92,7 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                     }
                 }]
             }, {
-                label: '🐵本地代理 ' + (runtime.proxyFileRoot ?? 'close'),
+                label: '🐵本地代理 ' + (userData.proxyFileRoot ?? 'close'),
                 submenu: [
                     {
                         label: '设置代理',
@@ -93,22 +100,34 @@ const appIcon = nativeImage.createFromPath(path.resolve(__dirname, '../../build/
                             let dir = dialog.showOpenDialogSync({properties: ['openDirectory']});
                             console.info('open directory:' + dir);
                             if (dir) {
-                                runtime.proxyFileRoot = dir[0];
+                                userData.proxyFileRoot = dir[0];
+                                userData.save();
                             }
-                            runtime.cacheMetric.updateDisplay();
+                            runtime.refreshMenu();
                         }
                     },
                     {
                         label: '关闭代理', click() {
-                            runtime.proxyFileRoot = null;
-                            runtime.cacheMetric.updateDisplay();
+                            userData.proxyFileRoot = null;
+                            userData.save();
+                            runtime.refreshMenu();
                         }
                     }
                 ]
+            }, {
+                label: '🐵flash:' + userFlashDll(),
+                submenu: [{label: '修改后重启生效'}].concat(flashDll().map(e => ({
+                    label: e,
+                    click: () => {
+                        userData.ppapiFlash = e;
+                        userData.save();
+                        runtime.refreshMenu();
+                    }
+                })))
             }]
             Menu.setApplicationMenu(Menu.buildFromTemplate(menu));
         }
-        runtime.cacheMetric.updateDisplay();
+        runtime.refreshMenu();
         runtime.win = new BrowserWindow({
             title: config.winTitle,
             useContentSize: true,
@@ -163,13 +182,42 @@ function ppapiFlashPath() {
             switch (process.arch) {
                 case 'ia32':
                 case 'x32':
-                    return pathResolve('win/pepflashplayer32_34_0_0_321.dll');
+                    return pathResolve('win/' + userFlashDll());
                 case 'x64':
-                    return pathResolve('win/pepflashplayer64_34_0_0_321.dll');
+                    return pathResolve('win/' + userFlashDll());
             }
             throw 'unknown arch:' + process.arch;
         case 'darwin':
             return pathResolve('mac/flash.plugin');
     }
     throw 'unknown platform:' + process.platform;
+}
+
+function flashDll() {
+    switch (process.platform) {
+        case 'win32':
+            switch (process.arch) {
+                case 'ia32':
+                case 'x32':
+                    return [
+                        'pepflashplayer32_34_0_0_308.dll',
+                        'pepflashplayer32_34_0_0_321.dll'
+                    ];
+                case 'x64':
+                    return [
+                        'pepflashplayer64_34_0_0_308.dll',
+                        'pepflashplayer64_34_0_0_321.dll'
+                    ];
+            }
+    }
+    return [];
+}
+
+function userFlashDll() {
+    let flashDllList = flashDll();
+    let dllName = flashDllList[0];
+    if (flashDllList.includes(userData.ppapiFlash)) {
+        dllName = userData.ppapiFlash;
+    }
+    return dllName;
 }

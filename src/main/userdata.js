@@ -1,11 +1,17 @@
 const storage = require('electron-json-storage');
 
-function windowSize(data) {
-    if (data !== undefined) {
-        storage.setSync('window-size', data);
-    } else {
-        return storage.getSync('window-size');
+const DATA_KEY = "userConfig";
+const userData = {
+    load() {
+        let data = storage.getSync(DATA_KEY) || {};
+        this.proxyFileRoot = data.proxyFileRoot;
+        this.ppapiFlash = data.ppapiFlash;
+    },
+    save() {
+        storage.setSync(DATA_KEY, {
+            proxyFileRoot: this.proxyFileRoot,
+            ppapiFlash: this.ppapiFlash,
+        });
     }
-}
-
-module.exports.windowSize = windowSize;
+};
+module.exports = userData;
