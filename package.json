@@ -1,82 +1,31 @@
 {
   "name": "seer2-next-client",
   "version": "1.0.14",
-  "main": "src/main/main.js",
+  "main": "src/main/index.ts",
   "scripts": {
-    "start": "electron .",
-    "compile": "electron-webpack && javascript-obfuscator dist/main/main.js --compact true --self-defending false",
-    "build": "npm run compile && electron-builder",
-    "release": "npm run compile && electron-builder --publish always"
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "prebuild": "electron-vite build",
+    "build": "npm run prebuild && electron-builder --config electron-builder.config.ts"
   },
   "author": "ukuq",
   "license": "MIT",
   "description": "seer2",
   "devDependencies": {
+    "@types/koa": "^3.0.0",
+    "@types/node-fetch": "^2.6.13",
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
     "electron": "^11.5.0",
-    "electron-builder": "^24.13.3",
-    "electron-webpack": "^2.8.2",
-    "javascript-obfuscator": "^4.1.0",
-    "xml2json": "^0.12.0"
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^4.0.1",
+    "eslint": "^9.36.0",
+    "eslint-plugin-import": "^2.32.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.7"
   },
   "dependencies": {
-    "about-window": "^1.15.2",
-    "electron-json-storage": "^4.6.0",
-    "electron-updater": "^6.1.8",
-    "node-fetch": "^2.7.0",
-    "source-map-support": "^0.5.21"
-  },
-  "electronWebpack": {
-    "commonSourceDirectory": "common",
-    "main": {
-      "sourceDirectory": "src/main/"
-    },
-    "renderer": {
-      "sourceDirectory": null
-    }
-  },
-  "build": {
-    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
-    "files": [
-      "dist/main/main-obfuscated.js"
-    ],
-    "extraResources": [
-      "runtime/common"
-    ],
-    "extraMetadata": {
-      "main": "dist/main/main-obfuscated.js"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
-      ],
-      "extraResources": [
-        "runtime/win"
-      ]
-    },
-    "mac": {
-      "target": "dmg",
-      "extraResources": [
-        "runtime/mac"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowElevation": true,
-      "allowToChangeInstallationDirectory": true
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "arcadia-star",
-        "repo": "seer2-next-client-release"
-      }
-    ]
+    "koa": "^2.16.2",
+    "node-fetch": "^2.7.0"
   }
 }
