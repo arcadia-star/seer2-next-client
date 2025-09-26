@@ -1,7 +1,7 @@
 {
   "name": "seer2-next-client",
   "version": "1.0.14",
-  "main": "src/main/index.ts",
+  "main": "./out/main/index.js",
   "scripts": {
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
