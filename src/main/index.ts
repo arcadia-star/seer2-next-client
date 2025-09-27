@@ -23,7 +23,13 @@ app.commandLine.appendSwitch('ppapi-flash-path', PPAPI_FLASH_PATH);
 app.on('ready', () => {
     appWindow.create();
     updateWindowMenu();
-    appWindow.load(LOCAL_ENTRY_URL);
+    init()
+        .then(() => {
+            appWindow.load(LOCAL_ENTRY_URL);
+        })
+        .catch(err => {
+            dialog.showErrorBox("1", err.message);
+        });
 });
 app.on('window-all-closed', () => {
     app.quit();
@@ -49,14 +55,14 @@ function updateWindowMenu() {
     const menu = Menu.buildFromTemplate([
         ...menuFromConfig,
         {
-            label: `🙊缓存信息 [\
-hit:${queryMetric(CacheMetricKey.Hit)},\
-expired:${queryMetric(CacheMetricKey.Expired)},\
-cached:${queryMetric(CacheMetricKey.Cache)},\
-checked:${queryMetric(CacheMetricKey.Checked)},\
-unchanged:${queryMetric(CacheMetricKey.Unchanged)},\
+            label: `🍪\
+hit:${queryMetric(CacheMetricKey.Hit)}, \
+expired:${queryMetric(CacheMetricKey.Expired)}, \
+cached:${queryMetric(CacheMetricKey.Cache)}, \
+checked:${queryMetric(CacheMetricKey.Checked)}, \
+unchanged:${queryMetric(CacheMetricKey.Unchanged)}, \
 changed:${queryMetric(CacheMetricKey.Changed)}\
-]`,
+`,
             submenu: [{
                 label: '清空浏览器缓存', click() {
                     session.defaultSession.clearCache();
@@ -95,7 +101,7 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
             ]
         },
         {
-            label: `flash: ${userData.ppapiFlash}`,
+            label: `🎬${userData.ppapiFlash}`,
             submenu: [{label: '修改后重启生效'}].concat(PPAPI_FLASH_DLLS.map(e => ({
                 label: e,
                 click: () => {
@@ -124,7 +130,7 @@ async function dnsLookup(host: string) {
     })
 }
 
-async function load() {
+async function init() {
     const address = await dnsLookup(DNS_ROOT);
     runtime.rootUrl = `http://${address}${SEER2_PATH}`;
 
@@ -155,5 +161,3 @@ async function load() {
         }
     });
 }
-
-load();
