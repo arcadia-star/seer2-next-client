@@ -1,13 +1,13 @@
 import {BrowserWindow} from 'electron';
 import path from 'path';
 
-import {appIcon, windowTitle} from './runtime'
+import {WINDOW_ICON, WINDOW_TITLE} from './runtime'
 
 let mainWindow: BrowserWindow;
 
 function create() {
     mainWindow = new BrowserWindow({
-        title: windowTitle,
+        title: WINDOW_TITLE,
         useContentSize: true,
         width: 1200,
         height: 660,
@@ -16,7 +16,7 @@ function create() {
             preload: path.join(__dirname, 'preload.js'),
             plugins: true,
         },
-        icon: appIcon,
+        icon: WINDOW_ICON,
     }).on('page-title-updated', (evt) => {
         evt.preventDefault();
     });

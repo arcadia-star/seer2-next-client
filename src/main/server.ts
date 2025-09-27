@@ -1,12 +1,21 @@
 import Koa from 'koa';
 import fetch from 'node-fetch';
 import {Server} from "http";
-import {config} from "./config";
-import {gameCachePath, runtime, appVersion} from "./runtime";
+import {
+    APP_GAME_CACHE_PATH,
+    APP_VERSION, BLOOM_PATH,
+    FLASH_POLICY_DATA,
+    FLASH_POLICY_PATH,
+    LOCAL_ENTRY_URL, LOCAL_ENTRY_URL_WITH_VERSION,
+    MAGIC_PATH, runtime,
+    SEER2_PATH,
+    SEER2_PORT, SEER2_MEE_URL
+} from "./runtime";
 import fs from "fs";
 import path from "path";
 import {md5} from "./utils";
 import crypto from 'crypto';
+import {userData} from "./userdata";
 
 let serverInner: Server;
 const FILE_LOCK: Record<string, boolean> = {};
@@ -19,26 +28,26 @@ async function start() {
         const app = new Koa();
         app.use(async ctx => {
             const urlPath = ctx.request.path;
-            if (urlPath === config.magicUrlPath) {
-                ctx.body = {version: appVersion};
+            if (urlPath === MAGIC_PATH) {
+                ctx.body = {version: APP_VERSION};
                 return;
             }
-            if (urlPath === config.flashPolicyPath) {
+            if (urlPath === FLASH_POLICY_PATH) {
                 ctx.type = 'xml';
-                ctx.body = config.flashPolicyData;
+                ctx.body = FLASH_POLICY_DATA;
                 return;
             }
-            if (urlPath.endsWith('/') || urlPath.endsWith('\\') || !urlPath.startsWith(config.rootUrlPath)) {
+            if (urlPath.endsWith('/') || urlPath.endsWith('\\') || !urlPath.startsWith(SEER2_PATH)) {
                 ctx.status = 403;
                 ctx.body = 'not a valid path';
                 return;
             }
-            if (urlPath === new URL(config.entryUrl).pathname && !ctx.request.query['version']) {
-                ctx.redirect(config.entryUrlWithVersion);
+            if (urlPath === new URL(LOCAL_ENTRY_URL).pathname && !ctx.request.query['version']) {
+                ctx.redirect(LOCAL_ENTRY_URL_WITH_VERSION);
                 return;
             }
-            if (runtime.proxyFileRoot) {
-                const filePath = runtime.proxyFileRoot + urlPath;
+            if (userData.proxyFileRoot) {
+                const filePath = userData.proxyFileRoot + urlPath;
                 if (fs.existsSync(filePath)) {
                     console.info("proxy file:", urlPath);
                     const buffer = await fs.promises.readFile(filePath).catch((): null => null);
@@ -49,13 +58,13 @@ async function start() {
                     }
                 }
             }
-            const bloomPath = urlPath.slice(config.rootUrlPath.length);
-            if (bloomPath === config.bloomPath) {
+            const bloomPath = urlPath.slice(SEER2_PATH.length);
+            if (bloomPath === BLOOM_PATH) {
                 ctx.status = 403;
                 return;
             }
             const pathHitBloom = runtime.bloomContains && runtime.bloomContains(bloomPath);
-            const filePath = path.join(gameCachePath, md5(urlPath.slice(1)) + '_' + urlPath.length);
+            const filePath = path.join(APP_GAME_CACHE_PATH, md5(urlPath.slice(1)) + '_' + urlPath.length);
             const stats = FILE_LOCK[bloomPath] ? null : await fs.promises.stat(filePath).catch((): null => null);
             if (stats && stats.isFile()) {
                 const responseWithCache = async () => {
@@ -86,7 +95,7 @@ async function start() {
                 }
             }
             //尝试获取文件
-            const fileUrl = (pathHitBloom ? runtime.rootUrl : config.seer2RootUrl) + bloomPath + (ctx.request.querystring ? ('?' + ctx.request.querystring) : "");
+            const fileUrl = (pathHitBloom ? runtime.rootUrl : SEER2_MEE_URL) + bloomPath + (ctx.request.querystring ? ('?' + ctx.request.querystring) : "");
             console.log('fetch:' + fileUrl);
             const response = await fetch(fileUrl);
             const responseBuffer = await response.buffer();
@@ -107,7 +116,7 @@ async function start() {
                 }
             }
         });
-        const serverInner0 = app.listen(config.serverPort);
+        const serverInner0 = app.listen(SEER2_PORT);
         serverInner0.on('listening', () => {
             serverInner = serverInner0;
             resolve(app);
@@ -198,7 +207,7 @@ async function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer,
 //异步检查缓存
 async function asyncCheckCache(urlPath: string, filePath: string, mtime: number) {
     const PREFIX = "async-check-file: ";
-    const response = await fetch(config.seer2RootUrl + urlPath, {
+    const response = await fetch(SEER2_MEE_URL + urlPath, {
         headers: {
             'If-Modified-Since': new Date(mtime).toUTCString()
         }

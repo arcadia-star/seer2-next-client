@@ -1,58 +1,38 @@
 import {appWindow} from "./window";
 import {appServer} from "./server";
-import {app, BrowserWindow, Menu} from "electron";
-import {ppapiFlashPath, runtime, appVersion} from "./runtime";
+import {app, Menu} from "electron";
+import {
+    APP_VERSION,
+    BLOOM_PATH,
+    DNS_ROOT,
+    LOCAL_ENTRY_URL,
+    LOCAL_MAGIC_URL,
+    PPAPI_FLASH_PATH, runtime,
+    SEER2_PATH
+} from "./runtime";
 import dns from "dns";
-import {config} from "./config";
 import {bloom} from "./utils";
 import fetch from "node-fetch";
 
-const createWindow = async () => {
+app.commandLine.appendSwitch('ppapi-flash-path', PPAPI_FLASH_PATH);
+app.on('ready', () => {
     appWindow.create();
-    await load();
-    await appServer.start().catch(async (err) => {
-        if (err.code === 'EADDRINUSE') {
-            const responseVersion = await fetch(config.magicUrl)
-                .then(e => e.json())
-                .then(e => e.version)
-                .catch((err) => console.error(err));
-            if (responseVersion === appVersion) {
-                console.log("start without server");
-            } else {
-                throw new Error(`Magic version not match, version: ${responseVersion}`);
-            }
-        } else {
-            throw err;
-        }
-    });
-    appWindow.load(config.entryUrl);
-}
-
-app.commandLine.appendSwitch('ppapi-flash-path', ppapiFlashPath);
-app.on('ready', createWindow);
+    appWindow.load(LOCAL_ENTRY_URL);
+});
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        exit();
-    }
-});
-app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow().catch(err => console.error(err));
-    }
-});
-const exit = () => {
     app.quit();
     appServer.close();
-}
+});
+
 const updateWindowMenu = () => {
     const menu = Menu.buildFromTemplate([{
         label: '🙈主菜单',
         submenu: [{
             label: '刷新网页', click: () => appWindow.reload()
         }, {
-            label: '★游戏主页', click: () => appWindow.load(config.entryUrl),
+            label: '★游戏主页', click: () => appWindow.load(LOCAL_ENTRY_URL),
         }, {
-            label: '★改服主页', click: () => appWindow.load(config.nextRootUrl),
+            label: '★改服主页', click: () => appWindow.load("http://733702.xyz"),
         }, {
             label: '赛尔号，启动！', click: () => appWindow.load('https://seer.61.com/play.shtml'),
         }, {
@@ -63,7 +43,7 @@ const updateWindowMenu = () => {
         }, {
             label: '★下载更新(网盘)', click: () => appWindow.load('https://www.123865.com/s/QwODjv-AjoJh'),
         }, {
-            label: '退出', click: exit,
+            label: '退出', role: 'close',
         }]
     }, {
         label: '🙉调整窗口',
@@ -96,17 +76,35 @@ async function dnsLookup(host: string) {
 }
 
 async function load() {
-    const address = await dnsLookup(config.rootUrlHost);
-    runtime.rootUrl = `http://${address}${config.rootUrlPath}`;
+    const address = await dnsLookup(DNS_ROOT);
+    runtime.rootUrl = `http://${address}${SEER2_PATH}`;
 
-    const bloomText = await fetch(runtime.rootUrl + config.bloomPath).then(e => e.text());
+    const bloomText = await fetch(runtime.rootUrl + BLOOM_PATH).then(e => e.text());
     runtime.bloomContains = bloom(bloomText);
 
     //强版控
-    if (!runtime.bloomContains('/version/seer2-next-client/v' + appVersion)) {
+    if (!runtime.bloomContains('/version/seer2-next-client/v' + APP_VERSION)) {
         // return Promise.reject({
         //     msg: '当前版本已被禁用, 建议下载最新版本',
         //     openExternal: 'https://github.com/arcadia-star/seer2-next-client-release/releases'
         // });
     }
+
+    await appServer.start().catch(async (err) => {
+        if (err.code === 'EADDRINUSE') {
+            const responseVersion = await fetch(LOCAL_MAGIC_URL)
+                .then(e => e.json())
+                .then(e => e.version)
+                .catch((err) => console.error(err));
+            if (responseVersion === APP_VERSION) {
+                console.log("start without server");
+            } else {
+                throw new Error(`Magic version not match, version: ${responseVersion}`);
+            }
+        } else {
+            throw err;
+        }
+    });
 }
+
+load();
