@@ -7,16 +7,19 @@ import {
     DNS_ROOT,
     LOCAL_ENTRY_URL,
     LOCAL_MAGIC_URL,
-    PPAPI_FLASH_PATH, runtime,
+    PPAPI_FLASH_PATH,
+    runtime,
     SEER2_PATH
 } from "./runtime";
 import dns from "dns";
 import {bloom} from "./utils";
 import fetch from "node-fetch";
+import {config, DynMenu} from "../config";
 
 app.commandLine.appendSwitch('ppapi-flash-path', PPAPI_FLASH_PATH);
 app.on('ready', () => {
     appWindow.create();
+    updateWindowMenu();
     appWindow.load(LOCAL_ENTRY_URL);
 });
 app.on('window-all-closed', () => {
@@ -24,42 +27,31 @@ app.on('window-all-closed', () => {
     appServer.close();
 });
 
-const updateWindowMenu = () => {
-    const menu = Menu.buildFromTemplate([{
-        label: '🙈主菜单',
-        submenu: [{
-            label: '刷新网页', click: () => appWindow.reload()
-        }, {
-            label: '★游戏主页', click: () => appWindow.load(LOCAL_ENTRY_URL),
-        }, {
-            label: '★改服主页', click: () => appWindow.load("http://733702.xyz"),
-        }, {
-            label: '赛尔号，启动！', click: () => appWindow.load('https://seer.61.com/play.shtml'),
-        }, {
-            label: '原神，启动！', click: () => appWindow.load('https://ys.mihoyo.com/cloud/'),
-        }, {
-            label: '★下载更新',
-            click: () => appWindow.load('https://github.com/arcadia-star/seer2-next-client-release/releases'),
-        }, {
-            label: '★下载更新(网盘)', click: () => appWindow.load('https://www.123865.com/s/QwODjv-AjoJh'),
-        }, {
-            label: '退出', role: 'close',
-        }]
-    }, {
-        label: '🙉调整窗口',
-        submenu: [
-            {label: '全屏', role: 'togglefullscreen'},
-            {label: '控制台', role: 'toggleDevTools'},
-            {label: '缩放=', role: 'resetZoom'},
-            {label: '缩放+', role: 'zoomIn'},
-            {label: '缩放-', role: 'zoomOut'},
-            {label: '关于', role: 'about'}
-        ]
-    }, {
-        label: 'server:' + appServer.listening(),
-    }]);
+function updateWindowMenu() {
+    function buildMenu(menu: DynMenu): any {
+        const label = menu.label;
+        if (menu.url) {
+            return {label, click: () => appWindow.load(menu.url)};
+        }
+        if (menu.role) {
+            return {label, role: menu.role};
+        }
+        if (menu.submenu?.length) {
+            return {label, submenu: menu.submenu.map(buildMenu)};
+        }
+        return {label: '❓'}
+    }
+
+    const menuFromConfig = config.menus.map(buildMenu);
+    const menu = Menu.buildFromTemplate([
+        ...menuFromConfig,
+        {
+            label: appServer.listening() ? '本地服务✅' : '本地服务❌'
+        }
+    ]);
     Menu.setApplicationMenu(menu);
-};
+}
+
 setInterval(updateWindowMenu, 1000);
 
 async function dnsLookup(host: string) {
