@@ -49,9 +49,6 @@ function updateWindowMenu() {
     const menu = Menu.buildFromTemplate([
         ...menuFromConfig,
         {
-            label: appServer.listening() ? '本地服务✅' : '本地服务❌'
-        },
-        {
             label: `🙊缓存信息 [\
 hit:${queryMetric(CacheMetricKey.Hit)},\
 expired:${queryMetric(CacheMetricKey.Expired)},\
@@ -69,8 +66,12 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
                     fs.rmdir(APP_GAME_CACHE_PATH, {recursive: true}, (err) => err && console.log(err));
                 }
             }]
-        }, {
-            label: '🐵本地代理 ' + (userData.proxyFileRoot ?? 'close'),
+        },
+        {
+            label: appServer.listening() ? '本地服务✅' : '本地服务❌'
+        },
+        {
+            label: userData.proxyFileRoot ? (`本地代理✅(${userData.proxyFileRoot})`) : '本地代理❌',
             submenu: [
                 {
                     label: '设置代理',
@@ -92,8 +93,9 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
                     }
                 }
             ]
-        }, {
-            label: '🐵flash:' + userData.ppapiFlash,
+        },
+        {
+            label: `flash: ${userData.ppapiFlash}`,
             submenu: [{label: '修改后重启生效'}].concat(PPAPI_FLASH_DLLS.map(e => ({
                 label: e,
                 click: () => {
