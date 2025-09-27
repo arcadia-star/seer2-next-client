@@ -13,7 +13,7 @@ function create() {
         height: 660,
         webPreferences: {
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, '../preload/index.js'),
             plugins: true,
         },
         icon: WINDOW_ICON,
