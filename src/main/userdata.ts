@@ -27,3 +27,7 @@ function write(data: UserData) {
 }
 
 export const userData = readSync();
+
+export function syncUserData() {
+    return write(userData);
+}

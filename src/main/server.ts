@@ -9,7 +9,7 @@ import {
     LOCAL_ENTRY_URL, LOCAL_ENTRY_URL_WITH_VERSION,
     MAGIC_PATH, runtime,
     SEER2_PATH,
-    SEER2_PORT, SEER2_MEE_URL
+    SEER2_PORT, SEER2_MEE_URL, reportMetric, CacheMetricKey
 } from "./runtime";
 import fs from "fs";
 import path from "path";
@@ -50,8 +50,9 @@ async function start() {
                 const filePath = userData.proxyFileRoot + urlPath;
                 if (fs.existsSync(filePath)) {
                     console.info("proxy file:", urlPath);
-                    const buffer = await fs.promises.readFile(filePath).catch((): null => null);
+                    const buffer = await fs.promises.readFile(filePath).catch(console.error);
                     if (buffer) {
+                        reportMetric(CacheMetricKey.Proxy);
                         ctx.type = path.extname(urlPath);
                         ctx.body = buffer;
                         return;
@@ -69,6 +70,7 @@ async function start() {
             if (stats && stats.isFile()) {
                 const responseWithCache = async () => {
                     console.log('hit:' + urlPath);
+                    reportMetric(CacheMetricKey.Hit);
                     ctx.set('x-hit', 'file');
                     ctx.lastModified = stats.mtime;
                     ctx.type = path.extname(urlPath);
@@ -85,12 +87,13 @@ async function start() {
                     //版控过期
                     else {
                         console.log('expire:' + urlPath);
+                        reportMetric(CacheMetricKey.Expired);
                     }
                 }
                 //非版控路径
                 else {
                     await responseWithCache();
-                    asyncCheckCache(bloomPath, filePath, stats.mtimeMs);
+                    asyncCheckCache(bloomPath, filePath, stats.mtimeMs).catch(console.error);
                     return;
                 }
             }
@@ -110,7 +113,7 @@ async function start() {
             if (ctx.status === 200 && !FILE_LOCK[bloomPath]) {
                 try {
                     FILE_LOCK[bloomPath] = true;
-                    writeWithDecipher(bloomPath, filePath, responseBuffer, utime);
+                    writeWithCipher(bloomPath, filePath, responseBuffer, utime).catch(console.error);
                 } finally {
                     delete FILE_LOCK[bloomPath];
                 }
@@ -139,7 +142,7 @@ function close() {
     serverInner = null;
 }
 
-async function writeWithDecipher(urlPath: string, filePath: string, buffer: Buffer, mtime: string | null) {
+async function writeWithCipher(urlPath: string, filePath: string, buffer: Buffer, mtime: string | null) {
     const algorithm = 'aes-192-cbc';
     const key = crypto.scryptSync(urlPath, 'salt', 24);
     const cipher = crypto.createCipheriv(algorithm, key, Buffer.alloc(16, 0));
@@ -197,6 +200,7 @@ async function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer,
                     })
                 }
                 console.log(PREFIX + 'write:' + urlPath);
+                reportMetric(CacheMetricKey.Cache);
                 resolve(null);
             });
         }
@@ -206,6 +210,7 @@ async function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer,
 
 //异步检查缓存
 async function asyncCheckCache(urlPath: string, filePath: string, mtime: number) {
+    reportMetric(CacheMetricKey.Checked);
     const PREFIX = "async-check-file: ";
     const response = await fetch(SEER2_MEE_URL + urlPath, {
         headers: {
@@ -214,6 +219,7 @@ async function asyncCheckCache(urlPath: string, filePath: string, mtime: number)
     });
     if (response.status === 304) {
         console.log(PREFIX + "file not change", urlPath);
+        reportMetric(CacheMetricKey.Unchanged);
         return;
     }
     if (response.status !== 200) {
@@ -223,12 +229,14 @@ async function asyncCheckCache(urlPath: string, filePath: string, mtime: number)
     const utime = response.headers.get('last-modified');
     if (utime && new Date(utime).valueOf() === mtime) {
         console.log(PREFIX + "mtime not change", urlPath);
+        reportMetric(CacheMetricKey.Unchanged);
         return;
     }
     console.log(PREFIX + "file has changed", urlPath);
+    reportMetric(CacheMetricKey.Changed);
     const responseBuffer = await response.buffer();
 
-    await writeWithDecipher(urlPath, filePath, responseBuffer, utime);
+    await writeWithCipher(urlPath, filePath, responseBuffer, utime);
 }
 
 export const appServer = {start, close, listening};

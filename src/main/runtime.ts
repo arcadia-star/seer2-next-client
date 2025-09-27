@@ -46,7 +46,7 @@ function ppapiFlashPath() {
         throw "flash dll not found";
     }
     const {ppapiFlash} = userData;
-    const dll = PPAPI_FLASH_DLLS.find(e => e === ppapiFlash) || PPAPI_FLASH_DLLS[0];
+    const dll = PPAPI_FLASH_DLLS.find(e => e === ppapiFlash) || (userData.ppapiFlash = PPAPI_FLASH_DLLS[0]);
     return `${PPAPI_FLASH_FOLDER}/${dll}`;
 }
 
@@ -63,3 +63,37 @@ export type AppRuntime = {
 }
 
 export const runtime: AppRuntime = {};
+
+export enum CacheMetricKey {
+    Hit,
+    Cache,
+    Expired,
+    Checked,
+    Unchanged,
+    Changed,
+    Proxy,
+}
+
+export const cacheMetric: {
+    callback?: () => void,
+    data: Record<CacheMetricKey, number>,
+} = {
+    data: {
+        [CacheMetricKey.Hit]: 0,
+        [CacheMetricKey.Cache]: 0,
+        [CacheMetricKey.Expired]: 0,
+        [CacheMetricKey.Checked]: 0,
+        [CacheMetricKey.Unchanged]: 0,
+        [CacheMetricKey.Changed]: 0,
+        [CacheMetricKey.Proxy]: 0
+    }
+};
+
+export function reportMetric(key: CacheMetricKey) {
+    cacheMetric.data[key] += 1;
+    cacheMetric?.callback?.();
+}
+
+export function queryMetric(key: CacheMetricKey) {
+    return cacheMetric.data[key];
+}

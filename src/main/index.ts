@@ -1,13 +1,14 @@
 import {appWindow} from "./window";
 import {appServer} from "./server";
-import {app, Menu} from "electron";
+import {app, dialog, Menu, session} from "electron";
 import {
+    APP_GAME_CACHE_PATH,
     APP_VERSION,
-    BLOOM_PATH,
+    BLOOM_PATH, cacheMetric, CacheMetricKey,
     DNS_ROOT,
     LOCAL_ENTRY_URL,
-    LOCAL_MAGIC_URL,
-    PPAPI_FLASH_PATH,
+    LOCAL_MAGIC_URL, PPAPI_FLASH_DLLS,
+    PPAPI_FLASH_PATH, queryMetric,
     runtime,
     SEER2_PATH
 } from "./runtime";
@@ -15,6 +16,8 @@ import dns from "dns";
 import {bloom} from "./utils";
 import fetch from "node-fetch";
 import {config, DynMenu} from "../config";
+import fs from "fs";
+import {syncUserData, userData} from "./userdata";
 
 app.commandLine.appendSwitch('ppapi-flash-path', PPAPI_FLASH_PATH);
 app.on('ready', () => {
@@ -47,12 +50,64 @@ function updateWindowMenu() {
         ...menuFromConfig,
         {
             label: appServer.listening() ? '本地服务✅' : '本地服务❌'
+        },
+        {
+            label: `🙊缓存信息 [\
+hit:${queryMetric(CacheMetricKey.Hit)},\
+expired:${queryMetric(CacheMetricKey.Expired)},\
+cached:${queryMetric(CacheMetricKey.Cache)},\
+checked:${queryMetric(CacheMetricKey.Checked)},\
+unchanged:${queryMetric(CacheMetricKey.Unchanged)},\
+changed:${queryMetric(CacheMetricKey.Changed)}\
+]`,
+            submenu: [{
+                label: '清空浏览器缓存', click() {
+                    session.defaultSession.clearCache();
+                }
+            }, {
+                label: '清空本地缓存(一般不用点)', click() {
+                    fs.rmdir(APP_GAME_CACHE_PATH, {recursive: true}, (err) => err && console.log(err));
+                }
+            }]
+        }, {
+            label: '🐵本地代理 ' + (userData.proxyFileRoot ?? 'close'),
+            submenu: [
+                {
+                    label: '设置代理',
+                    click() {
+                        let dir = dialog.showOpenDialogSync({properties: ['openDirectory']});
+                        console.info('open directory:' + dir);
+                        if (dir) {
+                            userData.proxyFileRoot = dir[0];
+                            syncUserData();
+                            updateWindowMenu();
+                        }
+                    }
+                },
+                {
+                    label: '关闭代理', click() {
+                        userData.proxyFileRoot = null;
+                        syncUserData();
+                        updateWindowMenu();
+                    }
+                }
+            ]
+        }, {
+            label: '🐵flash:' + userData.ppapiFlash,
+            submenu: [{label: '修改后重启生效'}].concat(PPAPI_FLASH_DLLS.map(e => ({
+                label: e,
+                click: () => {
+                    userData.ppapiFlash = e;
+                    syncUserData();
+                    updateWindowMenu();
+                }
+            })))
         }
     ]);
     Menu.setApplicationMenu(menu);
 }
 
-setInterval(updateWindowMenu, 1000);
+cacheMetric.callback = updateWindowMenu;
 
 async function dnsLookup(host: string) {
     return new Promise((resolve, reject) => {
