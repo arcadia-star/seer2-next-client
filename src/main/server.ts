@@ -2,7 +2,7 @@ import Koa from 'koa';
 import fetch from 'node-fetch';
 import {Server} from "http";
 import {config} from "./config";
-import {gameCachePath, runtime, version} from "./runtime";
+import {gameCachePath, runtime, appVersion} from "./runtime";
 import fs from "fs";
 import path from "path";
 import {md5} from "./utils";
@@ -15,12 +15,12 @@ async function start() {
     if (serverInner) {
         return;
     }
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const app = new Koa();
         app.use(async ctx => {
             const urlPath = ctx.request.path;
             if (urlPath === config.magicUrlPath) {
-                ctx.body = {version};
+                ctx.body = {version: appVersion};
                 return;
             }
             if (urlPath === config.flashPolicyPath) {
@@ -36,6 +36,18 @@ async function start() {
             if (urlPath === new URL(config.entryUrl).pathname && !ctx.request.query['version']) {
                 ctx.redirect(config.entryUrlWithVersion);
                 return;
+            }
+            if (runtime.proxyFileRoot) {
+                const filePath = runtime.proxyFileRoot + urlPath;
+                if (fs.existsSync(filePath)) {
+                    console.info("proxy file:", urlPath);
+                    const buffer = await fs.promises.readFile(filePath).catch((): null => null);
+                    if (buffer) {
+                        ctx.type = path.extname(urlPath);
+                        ctx.body = buffer;
+                        return;
+                    }
+                }
             }
             const bloomPath = urlPath.slice(config.rootUrlPath.length);
             if (bloomPath === config.bloomPath) {
@@ -58,7 +70,8 @@ async function start() {
                     //版控符合
                     const bloomPath1 = bloomPath + '?v=' + stats.mtimeMs;
                     if (runtime.bloomContains(bloomPath1)) {
-                        return responseWithCache();
+                        await responseWithCache();
+                        return;
                     }
                     //版控过期
                     else {
@@ -67,11 +80,13 @@ async function start() {
                 }
                 //非版控路径
                 else {
-                    return responseWithCache();
+                    await responseWithCache();
+                    asyncCheckCache(bloomPath, filePath, stats.mtimeMs);
+                    return;
                 }
             }
             //尝试获取文件
-            const fileUrl = (pathHitBloom ? runtime.rootUrl : config.seer2RootUrl) + bloomPath + '?' + ctx.request.querystring;
+            const fileUrl = (pathHitBloom ? runtime.rootUrl : config.seer2RootUrl) + bloomPath + (ctx.request.querystring ? ('?' + ctx.request.querystring) : "");
             console.log('fetch:' + fileUrl);
             const response = await fetch(fileUrl);
             const responseBuffer = await response.buffer();
@@ -92,10 +107,19 @@ async function start() {
                 }
             }
         });
-        serverInner = app.listen(config.serverPort).on('listening', () => {
+        const serverInner0 = app.listen(config.serverPort);
+        serverInner0.on('listening', () => {
+            serverInner = serverInner0;
             resolve(app);
         });
+        serverInner0.on('error', (err) => {
+            reject(err);
+        });
     })
+}
+
+function listening() {
+    return !!serverInner;
 }
 
 function close() {
@@ -106,15 +130,15 @@ function close() {
     serverInner = null;
 }
 
-function writeWithDecipher(urlPath: string, filePath: string, buffer: Buffer, mtime: string | null) {
+async function writeWithDecipher(urlPath: string, filePath: string, buffer: Buffer, mtime: string | null) {
     const algorithm = 'aes-192-cbc';
     const key = crypto.scryptSync(urlPath, 'salt', 24);
     const cipher = crypto.createCipheriv(algorithm, key, Buffer.alloc(16, 0));
     const data = Buffer.concat([cipher.update(buffer), cipher.final()]);
-    asyncCacheFile(urlPath, filePath, data, mtime).catch(console.error);
+    return asyncCacheFile(urlPath, filePath, data, mtime);
 }
 
-function readWithDecipher(urlPath: string, filePath: string): Promise<Buffer> {
+async function readWithDecipher(urlPath: string, filePath: string) {
     const algorithm = 'aes-192-cbc';
     const key = crypto.scryptSync(urlPath, 'salt', 24);
     const decipher = crypto.createDecipheriv(algorithm, key, Buffer.alloc(16, 0));
@@ -132,7 +156,7 @@ function readWithDecipher(urlPath: string, filePath: string): Promise<Buffer> {
 }
 
 //异步缓存文件
-function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer, mtime: string | null) {
+async function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer, mtime: string | null) {
     return new Promise((resolve, reject) => {
         const PREFIX = "async-cache-file: ";
         const cacheFile = (retry: boolean) => {
@@ -163,7 +187,7 @@ function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer, mtime
                         }
                     })
                 }
-                console.log(PREFIX + 'write:' + urlPath + ", mtime:" + mtime.valueOf() + ", file:" + filePath);
+                console.log(PREFIX + 'write:' + urlPath);
                 resolve(null);
             });
         }
@@ -171,5 +195,31 @@ function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer, mtime
     });
 }
 
+//异步检查缓存
+async function asyncCheckCache(urlPath: string, filePath: string, mtime: number) {
+    const PREFIX = "async-check-file: ";
+    const response = await fetch(config.seer2RootUrl + urlPath, {
+        headers: {
+            'If-Modified-Since': new Date(mtime).toUTCString()
+        }
+    });
+    if (response.status === 304) {
+        console.log(PREFIX + "file not change", urlPath);
+        return;
+    }
+    if (response.status !== 200) {
+        console.log(PREFIX + "status not success", urlPath);
+        return;
+    }
+    const utime = response.headers.get('last-modified');
+    if (utime && new Date(utime).valueOf() === mtime) {
+        console.log(PREFIX + "mtime not change", urlPath);
+        return;
+    }
+    console.log(PREFIX + "file has changed", urlPath);
+    const responseBuffer = await response.buffer();
 
-export const appServer = {start, close};
+    await writeWithDecipher(urlPath, filePath, responseBuffer, utime);
+}
+
+export const appServer = {start, close, listening};

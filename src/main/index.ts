@@ -1,7 +1,7 @@
 import {appWindow} from "./window";
 import {appServer} from "./server";
 import {app, BrowserWindow, Menu} from "electron";
-import {ppapiFlashPath, runtime} from "./runtime";
+import {ppapiFlashPath, runtime, appVersion} from "./runtime";
 import dns from "dns";
 import {config} from "./config";
 import {bloom} from "./utils";
@@ -9,9 +9,22 @@ import fetch from "node-fetch";
 
 const createWindow = async () => {
     appWindow.create();
-    updateWindowMenu();
     await load();
-    await appServer.start();
+    await appServer.start().catch(async (err) => {
+        if (err.code === 'EADDRINUSE') {
+            const responseVersion = await fetch(config.magicUrl)
+                .then(e => e.json())
+                .then(e => e.version)
+                .catch((err) => console.error(err));
+            if (responseVersion === appVersion) {
+                console.log("start without server");
+            } else {
+                throw new Error(`Magic version not match, version: ${responseVersion}`);
+            }
+        } else {
+            throw err;
+        }
+    });
     appWindow.load(config.entryUrl);
 }
 
@@ -62,9 +75,12 @@ const updateWindowMenu = () => {
             {label: '缩放-', role: 'zoomOut'},
             {label: '关于', role: 'about'}
         ]
+    }, {
+        label: 'server:' + appServer.listening(),
     }]);
     Menu.setApplicationMenu(menu);
 };
+setInterval(updateWindowMenu, 1000);
 
 async function dnsLookup(host: string) {
     return new Promise((resolve, reject) => {
@@ -85,4 +101,12 @@ async function load() {
 
     const bloomText = await fetch(runtime.rootUrl + config.bloomPath).then(e => e.text());
     runtime.bloomContains = bloom(bloomText);
+
+    //强版控
+    if (!runtime.bloomContains('/version/seer2-next-client/v' + appVersion)) {
+        // return Promise.reject({
+        //     msg: '当前版本已被禁用, 建议下载最新版本',
+        //     openExternal: 'https://github.com/arcadia-star/seer2-next-client-release/releases'
+        // });
+    }
 }
