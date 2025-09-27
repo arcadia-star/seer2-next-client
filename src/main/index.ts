@@ -74,10 +74,10 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
             }]
         },
         {
-            label: appServer.listening() ? '本地服务✅' : '本地服务❌'
+            label: appServer.listening() ? '✅本地服务' : '❌本地服务'
         },
         {
-            label: userData.proxyFileRoot ? (`本地代理✅(${userData.proxyFileRoot})`) : '本地代理❌',
+            label: userData.proxyFileRoot ? (`✅本地代理(${userData.proxyFileRoot})`) : '❌本地代理',
             submenu: [
                 {
                     label: '设置代理',
