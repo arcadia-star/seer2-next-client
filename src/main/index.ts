@@ -69,7 +69,7 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
 `,
             submenu: [{
                 label: '清空缓存(浏览器)', click() {
-                    session.defaultSession.clearCache();
+                    session.defaultSession.clearCache().catch();
                 }
             }, {
                 label: '清空缓存(文件缓存)⚠️', click() {
