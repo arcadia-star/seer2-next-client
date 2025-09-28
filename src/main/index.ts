@@ -1,6 +1,6 @@
 import {appWindow} from "./window";
 import {appServer} from "./server";
-import {app, dialog, Menu, session} from "electron";
+import {app, dialog, Menu, session, shell} from "electron";
 import {
     APP_GAME_CACHE_PATH,
     APP_VERSION,
@@ -28,12 +28,13 @@ app.on('ready', () => {
             appWindow.load(LOCAL_ENTRY_URL);
         })
         .catch(err => {
-            dialog.showErrorBox("1", err.message);
+            dialog.showErrorBox("初始化失败", err.message);
+            app.quit();
         });
 });
 app.on('window-all-closed', () => {
     app.quit();
-    appServer.close();
+    appServer.close().catch();
 });
 
 function updateWindowMenu() {
@@ -41,6 +42,9 @@ function updateWindowMenu() {
         const label = menu.label;
         if (menu.url) {
             return {label, click: () => appWindow.load(menu.url)};
+        }
+        if (menu.externalUrl) {
+            return {label, click: () => shell.openExternal(menu.externalUrl)};
         }
         if (menu.role) {
             return {label, role: menu.role};
@@ -64,52 +68,63 @@ unchanged:${queryMetric(CacheMetricKey.Unchanged)}, \
 changed:${queryMetric(CacheMetricKey.Changed)}\
 `,
             submenu: [{
-                label: '清空浏览器缓存', click() {
+                label: '清空缓存(浏览器)', click() {
                     session.defaultSession.clearCache();
                 }
             }, {
-                label: '清空本地缓存(一般不用点)', click() {
-                    fs.rmdir(APP_GAME_CACHE_PATH, {recursive: true}, (err) => err && console.log(err));
+                label: '清空缓存(文件缓存)⚠️', click() {
+                    if (!appWindow.confirm('操作确认', '清空文件缓存会影响性能，是否继续')) {
+                        return;
+                    }
+                    fs.rmdir(APP_GAME_CACHE_PATH, {recursive: true}, (err) => {
+                        err && dialog.showErrorBox('操作失败', err.message)
+                    });
                 }
             }]
         },
         {
-            label: appServer.listening() ? '✅本地服务' : '❌本地服务'
+            label: (appServer.locking() ? '❓' : (appServer.listening() ? '✅' : '❌')) + '本地服务',
+            click: async () => {
+                if (appServer.locking()) {
+                    dialog.showErrorBox('禁止执行操作', '处理中，请等待');
+                    return;
+                }
+                if (appServer.listening()) {
+                    appServer.close().catch((err: Error) => dialog.showErrorBox('服务关闭失败', err.message)).then(updateWindowMenu);
+                } else {
+                    appServer.start().catch((err: Error) => dialog.showErrorBox('服务启动失败', err.message)).then(updateWindowMenu);
+                }
+                updateWindowMenu();
+            }
         },
         {
             label: userData.proxyFileRoot ? (`✅本地代理(${userData.proxyFileRoot})`) : '❌本地代理',
-            submenu: [
-                {
-                    label: '设置代理',
-                    click() {
-                        let dir = dialog.showOpenDialogSync({properties: ['openDirectory']});
-                        console.info('open directory:' + dir);
-                        if (dir) {
-                            userData.proxyFileRoot = dir[0];
-                            syncUserData();
-                            updateWindowMenu();
-                        }
-                    }
-                },
-                {
-                    label: '关闭代理', click() {
-                        userData.proxyFileRoot = null;
-                        syncUserData();
-                        updateWindowMenu();
+            click: async () => {
+                if (userData.proxyFileRoot) {
+                    userData.proxyFileRoot = null;
+                    syncUserData().catch((err: Error) => dialog.showErrorBox('数据同步失败', err.message));
+                } else {
+                    let dir = dialog.showOpenDialogSync({properties: ['openDirectory']});
+                    console.info('open directory:' + dir);
+                    if (dir) {
+                        userData.proxyFileRoot = dir[0];
+                        syncUserData().catch((err: Error) => dialog.showErrorBox('数据同步失败', err.message));
                     }
                 }
-            ]
+                updateWindowMenu();
+            }
         },
         {
             label: `🎬${userData.ppapiFlash}`,
-            submenu: [{label: '修改后重启生效'}].concat(PPAPI_FLASH_DLLS.map(e => ({
-                label: e,
-                click: () => {
-                    userData.ppapiFlash = e;
-                    syncUserData();
-                    updateWindowMenu();
-                }
-            })))
+            submenu: PPAPI_FLASH_DLLS.map(name => ({
+                label: name + (name === userData.ppapiFlash ? '✅' : ''),
+                click: async () => {
+                    userData.ppapiFlash = name;
+                    await syncUserData();
+                    app.relaunch();
+                    app.quit();
+                },
+            }))
         }
     ]);
     Menu.setApplicationMenu(menu);
@@ -134,18 +149,22 @@ async function init() {
     const address = await dnsLookup(DNS_ROOT);
     runtime.rootUrl = `http://${address}${SEER2_PATH}`;
 
-    const bloomText = await fetch(runtime.rootUrl + BLOOM_PATH).then(e => e.text());
-    runtime.bloomContains = bloom(bloomText);
+    const bloomText = await fetch(runtime.rootUrl + BLOOM_PATH)
+        .catch(() => Promise.reject(new Error('版控文件加载失败，请检查网络后重试')))
+        .then(e => e.text());
+    try {
+        runtime.bloomContains = bloom(bloomText);
+    } catch {
+        return Promise.reject(new Error('版控文件解析失败，请联系项目组反馈'))
+    }
 
     //强版控
     if (!runtime.bloomContains('/version/seer2-next-client/v' + APP_VERSION)) {
-        // return Promise.reject({
-        //     msg: '当前版本已被禁用, 建议下载最新版本',
-        //     openExternal: 'https://github.com/arcadia-star/seer2-next-client-release/releases'
-        // });
+        await shell.openExternal('https://github.com/arcadia-star/seer2-next-client-release/releases').catch();
+        return Promise.reject(new Error('当前版本已被禁用，建议下载最新版本'));
     }
 
-    await appServer.start().catch(async (err) => {
+    return appServer.start().catch(async (err) => {
         if (err.code === 'EADDRINUSE') {
             const responseVersion = await fetch(LOCAL_MAGIC_URL)
                 .then(e => e.json())
@@ -153,11 +172,9 @@ async function init() {
                 .catch((err) => console.error(err));
             if (responseVersion === APP_VERSION) {
                 console.log("start without server");
-            } else {
-                throw new Error(`Magic version not match, version: ${responseVersion}`);
+                return;
             }
-        } else {
-            throw err;
         }
+        throw err;
     });
 }

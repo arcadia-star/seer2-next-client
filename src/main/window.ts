@@ -1,4 +1,4 @@
-import {BrowserWindow} from 'electron';
+import {BrowserWindow, dialog} from 'electron';
 import path from 'path';
 
 import {WINDOW_ICON, WINDOW_TITLE} from './runtime'
@@ -30,4 +30,24 @@ function reload() {
     mainWindow?.reload();
 }
 
-export const appWindow = {create, load, reload};
+function close() {
+    if (mainWindow) {
+        return;
+    }
+    mainWindow.close();
+    mainWindow = null;
+}
+
+async function confirm(title: string, message: string) {
+    const result = await dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        buttons: ['确认', '取消'],
+        defaultId: 0,
+        cancelId: 1,
+        title,
+        message
+    });
+    return result.response === 0;
+}
+
+export const appWindow = {create, load, reload, close, confirm};
