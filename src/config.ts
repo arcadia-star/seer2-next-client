@@ -12,7 +12,7 @@ export const config: { menus: DynMenu[] } = {
             label: '⭐主菜单',
             submenu: [
                 {label: '刷新网页', role: 'reload'},
-                {label: '★游戏主页', url: 'http://127.0.0.1:7337/seer2/play-local.html'},
+                {label: '★游戏主页', url: 'http://seer2.client/seer2/play-local.html'},
                 {label: '★改服主页', url: 'http://733702.xyz'},
                 {label: '赛尔号，启动！', url: 'https://seer.61.com/play.shtml'},
                 {label: '原神，启动！', url: 'https://ys.mihoyo.com/cloud/'},

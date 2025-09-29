@@ -85,6 +85,9 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
             submenu: [{
                 label: '清空缓存(浏览器)', click() {
                     session.defaultSession.clearCache().catch();
+                    init().catch(err => {
+                        dialog.showErrorBox("操作失败", err.message);
+                    });
                 }
             }, {
                 label: '清空缓存(文件缓存)⚠️', click() {
@@ -126,6 +129,7 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
                         syncUserData().catch((err: Error) => dialog.showErrorBox('数据同步失败', err.message));
                     }
                 }
+                session.defaultSession.clearCache().catch();
                 updateWindowMenu();
             }
         },
