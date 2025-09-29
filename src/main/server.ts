@@ -1,6 +1,6 @@
 import Koa, {Context} from 'koa';
 import fetch from 'node-fetch';
-import {Server} from "http";
+import {createServer, Server} from "http";
 import {
     APP_GAME_CACHE_PATH,
     APP_VERSION,
@@ -22,7 +22,7 @@ import path from "path";
 import {md5} from "./utils";
 import crypto from 'crypto';
 import {userData} from "./userdata";
-import {createServer} from "http";
+import {ProtocolRequest, ProtocolResponse} from "electron";
 
 const server: { inner?: Server, lock?: boolean } = {};
 const FILE_LOCK: Record<string, boolean> = {};
@@ -36,14 +36,12 @@ async function start() {
     }
     server.lock = true;
     return new Promise((resolve, reject) => {
-        const app = new Koa();
-        app.use(serverHandler);
-        const serverInner = createServer(app.callback());
+        const serverInner = createServer(createKoaCallback());
         serverInner.on('listening', () => {
             console.log("server start success")
             server.inner = serverInner;
             server.lock = false;
-            resolve(app);
+            resolve(serverInner);
         });
         serverInner.on('error', (err) => {
             console.log("server start error:", err.message);
@@ -88,8 +86,14 @@ function locking() {
     return !!server.lock;
 }
 
+function createKoaCallback() {
+    const app = new Koa();
+    app.use(serverHandler);
+    return app.callback();
+}
+
 async function serverHandler(ctx: Context) {
-    const urlPath = ctx.request.path;
+    const urlPath = ctx.path;
     if (urlPath === MAGIC_PATH) {
         ctx.body = {version: APP_VERSION};
         return;
@@ -104,7 +108,7 @@ async function serverHandler(ctx: Context) {
         ctx.body = 'not a valid path';
         return;
     }
-    if (urlPath === new URL(LOCAL_ENTRY_URL).pathname && !ctx.request.query['version']) {
+    if (urlPath === new URL(LOCAL_ENTRY_URL).pathname && !ctx.query['version']) {
         ctx.redirect(LOCAL_ENTRY_URL_WITH_VERSION);
         return;
     }
@@ -161,7 +165,7 @@ async function serverHandler(ctx: Context) {
     }
     //尝试获取文件
     const fileUrl = (pathHitBloom ? runtime.rootUrl : SEER2_MEE_URL) + bloomPath + (ctx.request.querystring ? ('?' + ctx.request.querystring) : "");
-    console.log('fetch:' + fileUrl);
+    console.log('fetch: ' + fileUrl);
     const response = await fetch(fileUrl);
     const responseBuffer = await response.buffer();
 
@@ -179,6 +183,41 @@ async function serverHandler(ctx: Context) {
         } finally {
             delete FILE_LOCK[bloomPath];
         }
+    }
+}
+
+//自定义协议
+function createBufferProtocol(scheme: string) {
+    const koaCallback = createKoaCallback();
+    return (request: ProtocolRequest, callback: (r: ProtocolResponse) => void) => {
+        const response: ProtocolResponse = {statusCode: null, headers: {}, data: null};
+        const req = {
+            url: "http" + request.url.slice(scheme.length),
+            method: request.method,
+            headers: request.headers,
+            body: request.uploadData?.[0].bytes
+        };
+        const res = {
+            set statusCode(statusCode: number) {
+                response.statusCode = statusCode;
+            },
+            hasHeader(name: string) {
+                return !!response.headers[name.toLowerCase()];
+            },
+            setHeader(name: string, value: string | string[]) {
+                response.headers[name.toLowerCase()] = value;
+            },
+            removeHeader(name: string) {
+                response.headers[name.toLowerCase()] = null;
+            },
+            end(data: Buffer) {
+                response.data = data;
+                console.log("Protocol", `${response.statusCode} ${req.url} ${response.data.length ?? ''}`);
+                callback(response);
+            }
+        }
+        console.log("Protocol", `${req.method} ${req.url} ${req.body?.length ?? ''}`);
+        koaCallback(req as never, res as never).catch();
     }
 }
 
@@ -281,4 +320,4 @@ async function asyncCheckCache(urlPath: string, filePath: string, mtime: number)
     await writeWithCipher(urlPath, filePath, responseBuffer, utime);
 }
 
-export const appServer = {start, close, listening, locking};
+export const appServer = {start, close, listening, locking, createBufferProtocol};

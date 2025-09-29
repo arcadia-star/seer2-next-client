@@ -1,13 +1,13 @@
 import {appWindow} from "./window";
 import {appServer} from "./server";
-import {app, dialog, Menu, session, shell} from "electron";
+import {app, dialog, Menu, protocol, ProtocolResponse, session, shell} from "electron";
 import {
     APP_GAME_CACHE_PATH,
     APP_VERSION,
     BLOOM_PATH, cacheMetric, CacheMetricKey,
     DNS_ROOT,
-    LOCAL_ENTRY_URL,
-    LOCAL_MAGIC_URL, PPAPI_FLASH_DLLS,
+    LOCAL_ENTRY_URL, LOCAL_ENTRY_URL_WITH_VERSION,
+    LOCAL_MAGIC_URL, LOCAL_PROTOCOL, PPAPI_FLASH_DLLS,
     PPAPI_FLASH_PATH, queryMetric,
     runtime,
     SEER2_PATH
@@ -19,13 +19,23 @@ import {config, DynMenu} from "../config";
 import fs from "fs";
 import {syncUserData, userData} from "./userdata";
 
+protocol.registerSchemesAsPrivileged([{
+    scheme: LOCAL_PROTOCOL,
+    privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+    }
+}])
+
 app.commandLine.appendSwitch('ppapi-flash-path', PPAPI_FLASH_PATH);
 app.on('ready', () => {
+    protocol.registerBufferProtocol(LOCAL_PROTOCOL, appServer.createBufferProtocol(LOCAL_PROTOCOL));
     appWindow.create();
     updateWindowMenu();
     init()
         .then(() => {
-            appWindow.load(LOCAL_ENTRY_URL);
+            appWindow.load(LOCAL_ENTRY_URL_WITH_VERSION);
         })
         .catch(err => {
             dialog.showErrorBox("初始化失败", err.message);
@@ -163,18 +173,4 @@ async function init() {
         await shell.openExternal('https://github.com/arcadia-star/seer2-next-client-release/releases').catch();
         return Promise.reject(new Error('当前版本已被禁用，建议下载最新版本'));
     }
-
-    return appServer.start().catch(async (err) => {
-        if (err.code === 'EADDRINUSE') {
-            const responseVersion = await fetch(LOCAL_MAGIC_URL)
-                .then(e => e.json())
-                .then(e => e.version)
-                .catch((err) => console.error(err));
-            if (responseVersion === APP_VERSION) {
-                console.log("start without server");
-                return;
-            }
-        }
-        throw err;
-    });
 }

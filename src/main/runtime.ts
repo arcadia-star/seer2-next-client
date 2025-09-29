@@ -13,8 +13,9 @@ export const FLASH_POLICY_DATA = '<?xml version="1.0"?><!DOCTYPE cross-domain-po
 
 export const MAGIC_PATH = "/seer2-next-client-hello"
 export const BLOOM_PATH = "/config/bloom-path.data"
-export const LOCAL_MAGIC_URL = `http://127.0.0.1:${SEER2_PORT}${MAGIC_PATH}`;
-export const LOCAL_ENTRY_URL = `http://127.0.0.1:${SEER2_PORT}${SEER2_PATH}/play-local.html`;
+export const LOCAL_PROTOCOL = "seer2";
+export const LOCAL_MAGIC_URL = `${LOCAL_PROTOCOL}://127.0.0.1:${SEER2_PORT}${MAGIC_PATH}`;
+export const LOCAL_ENTRY_URL = `${LOCAL_PROTOCOL}://127.0.0.1:${SEER2_PORT}${SEER2_PATH}/play-local.html`;
 export const LOCAL_ENTRY_URL_WITH_VERSION = `${LOCAL_ENTRY_URL}?version=${app.getVersion()}&platform=${process.platform}&arch=${process.arch}`;
 
 export const APP_VERSION = app.getVersion();
