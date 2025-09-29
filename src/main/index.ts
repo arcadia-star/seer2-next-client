@@ -1,14 +1,18 @@
 import {appWindow} from "./window";
 import {appServer} from "./server";
-import {app, dialog, Menu, protocol, ProtocolResponse, session, shell} from "electron";
+import {app, dialog, Menu, protocol, session, shell} from "electron";
 import {
     APP_GAME_CACHE_PATH,
     APP_VERSION,
-    BLOOM_PATH, cacheMetric, CacheMetricKey,
+    BLOOM_PATH,
+    cacheMetric,
+    CacheMetricKey,
     DNS_ROOT,
-    LOCAL_ENTRY_URL, LOCAL_ENTRY_URL_WITH_VERSION,
-    LOCAL_MAGIC_URL, LOCAL_PROTOCOL, PPAPI_FLASH_DLLS,
-    PPAPI_FLASH_PATH, queryMetric,
+    LOCAL_ENTRY_URL_WITH_VERSION,
+    LOCAL_PROTOCOL,
+    PPAPI_FLASH_DLLS,
+    PPAPI_FLASH_PATH,
+    queryMetric,
     runtime,
     SEER2_PATH
 } from "./runtime";
@@ -24,13 +28,14 @@ protocol.registerSchemesAsPrivileged([{
     privileges: {
         standard: true,
         secure: true,
+        allowServiceWorkers: true,
         supportFetchAPI: true,
     }
 }])
 
 app.commandLine.appendSwitch('ppapi-flash-path', PPAPI_FLASH_PATH);
 app.on('ready', () => {
-    protocol.registerBufferProtocol(LOCAL_PROTOCOL, appServer.createBufferProtocol(LOCAL_PROTOCOL));
+    protocol.interceptBufferProtocol(LOCAL_PROTOCOL, appServer.createBufferProtocol(LOCAL_PROTOCOL));
     appWindow.create();
     updateWindowMenu();
     init()

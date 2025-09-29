@@ -9,7 +9,7 @@ import {
     FLASH_POLICY_DATA,
     FLASH_POLICY_PATH,
     LOCAL_ENTRY_URL,
-    LOCAL_ENTRY_URL_WITH_VERSION,
+    LOCAL_ENTRY_URL_WITH_VERSION, LOCAL_HOSTNAME,
     MAGIC_PATH,
     reportMetric,
     runtime,
@@ -189,7 +189,7 @@ async function serverHandler(ctx: Context) {
 //自定义协议
 function createBufferProtocol(scheme: string) {
     const koaCallback = createKoaCallback();
-    return (request: ProtocolRequest, callback: (r: ProtocolResponse) => void) => {
+    return async (request: ProtocolRequest, callback: (r: ProtocolResponse) => void) => {
         const response: ProtocolResponse = {statusCode: null, headers: {}, data: null};
         const req = {
             url: "http" + request.url.slice(scheme.length),
@@ -197,6 +197,15 @@ function createBufferProtocol(scheme: string) {
             headers: request.headers,
             body: request.uploadData?.[0].bytes
         };
+        if (new URL(request.url).hostname !== LOCAL_HOSTNAME) {
+            const res = await fetch(req.url, {method: req.method, headers: req.headers, body: req.body});
+            callback({
+                statusCode: res.status,
+                headers: res.headers.raw(),
+                data: await res.buffer()
+            });
+            return;
+        }
         const res = {
             set statusCode(statusCode: number) {
                 response.statusCode = statusCode;
