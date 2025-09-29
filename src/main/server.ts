@@ -1,6 +1,10 @@
-import Koa, {Context} from 'koa';
-import fetch from 'node-fetch';
-import {createServer, Server} from "http";
+import crypto from "crypto";
+import { ProtocolRequest, ProtocolResponse } from "electron";
+import fs from "fs";
+import { createServer, Server } from "http";
+import Koa, { Context } from "koa";
+import fetch from "node-fetch";
+import path from "path";
 import {
     APP_GAME_CACHE_PATH,
     APP_VERSION,
@@ -9,7 +13,8 @@ import {
     FLASH_POLICY_DATA,
     FLASH_POLICY_PATH,
     LOCAL_ENTRY_URL,
-    LOCAL_ENTRY_URL_WITH_VERSION, LOCAL_HOSTNAME,
+    LOCAL_ENTRY_URL_WITH_VERSION,
+    LOCAL_HOSTNAME,
     MAGIC_PATH,
     reportMetric,
     runtime,
@@ -17,14 +22,10 @@ import {
     SEER2_PATH,
     SEER2_PORT
 } from "./runtime";
-import fs from "fs";
-import path from "path";
-import {md5} from "./utils";
-import crypto from 'crypto';
-import {userData} from "./userdata";
-import {ProtocolRequest, ProtocolResponse} from "electron";
+import { userData } from "./userdata";
+import { md5 } from "./utils";
 
-const server: { inner?: Server, lock?: boolean } = {};
+const server: { inner?: Server; lock?: boolean } = {};
 const FILE_LOCK: Record<string, boolean> = {};
 
 async function start() {
@@ -37,20 +38,20 @@ async function start() {
     server.lock = true;
     return new Promise((resolve, reject) => {
         const serverInner = createServer(createKoaCallback());
-        serverInner.on('listening', () => {
-            console.log("server start success")
+        serverInner.on("listening", () => {
+            console.log("server start success");
             server.inner = serverInner;
             server.lock = false;
             resolve(serverInner);
         });
-        serverInner.on('error', (err) => {
+        serverInner.on("error", (err) => {
             console.log("server start error:", err.message);
             server.lock = false;
             reject(err);
         });
         serverInner.listen(SEER2_PORT);
-        console.log("server starting...")
-    })
+        console.log("server starting...");
+    });
 }
 
 async function close() {
@@ -74,8 +75,8 @@ async function close() {
             server.lock = false;
             resolve(null);
         });
-        console.log("server closing...")
-    })
+        console.log("server closing...");
+    });
 }
 
 function listening() {
@@ -95,20 +96,20 @@ function createKoaCallback() {
 async function serverHandler(ctx: Context) {
     const urlPath = ctx.path;
     if (urlPath === MAGIC_PATH) {
-        ctx.body = {version: APP_VERSION};
+        ctx.body = { version: APP_VERSION };
         return;
     }
     if (urlPath === FLASH_POLICY_PATH) {
-        ctx.type = 'xml';
+        ctx.type = "xml";
         ctx.body = FLASH_POLICY_DATA;
         return;
     }
-    if (urlPath.endsWith('/') || urlPath.endsWith('\\') || !urlPath.startsWith(SEER2_PATH)) {
+    if (urlPath.endsWith("/") || urlPath.endsWith("\\") || !urlPath.startsWith(SEER2_PATH)) {
         ctx.status = 403;
-        ctx.body = 'not a valid path';
+        ctx.body = "not a valid path";
         return;
     }
-    if (urlPath === new URL(LOCAL_ENTRY_URL).pathname && !ctx.query['version']) {
+    if (urlPath === new URL(LOCAL_ENTRY_URL).pathname && !ctx.query["version"]) {
         ctx.redirect(LOCAL_ENTRY_URL_WITH_VERSION);
         return;
     }
@@ -131,28 +132,28 @@ async function serverHandler(ctx: Context) {
         return;
     }
     const pathHitBloom = runtime.bloomContains && runtime.bloomContains(bloomPath);
-    const filePath = path.join(APP_GAME_CACHE_PATH, md5(urlPath.slice(1)) + '_' + urlPath.length);
+    const filePath = path.join(APP_GAME_CACHE_PATH, md5(urlPath.slice(1)) + "_" + urlPath.length);
     const stats = FILE_LOCK[bloomPath] ? null : await fs.promises.stat(filePath).catch((): null => null);
     if (stats && stats.isFile()) {
         const responseWithCache = async () => {
-            console.log('hit:' + urlPath);
+            console.log("hit:" + urlPath);
             reportMetric(CacheMetricKey.Hit);
-            ctx.set('x-hit', 'file');
+            ctx.set("x-hit", "file");
             ctx.lastModified = stats.mtime;
             ctx.type = path.extname(urlPath);
             ctx.body = await readWithDecipher(bloomPath, filePath);
-        }
+        };
         //版控路径
         if (pathHitBloom) {
             //版控符合
-            const bloomPath1 = bloomPath + '?v=' + stats.mtimeMs;
+            const bloomPath1 = bloomPath + "?v=" + stats.mtimeMs;
             if (runtime.bloomContains(bloomPath1)) {
                 await responseWithCache();
                 return;
             }
             //版控过期
             else {
-                console.log('expire:' + urlPath);
+                console.log("expire:" + urlPath);
                 reportMetric(CacheMetricKey.Expired);
             }
         }
@@ -164,16 +165,19 @@ async function serverHandler(ctx: Context) {
         }
     }
     //尝试获取文件
-    const fileUrl = (pathHitBloom ? runtime.rootUrl : SEER2_MEE_URL) + bloomPath + (ctx.request.querystring ? ('?' + ctx.request.querystring) : "");
-    console.log('fetch: ' + fileUrl);
+    const fileUrl =
+        (pathHitBloom ? runtime.rootUrl : SEER2_MEE_URL) +
+        bloomPath +
+        (ctx.request.querystring ? "?" + ctx.request.querystring : "");
+    console.log("fetch: " + fileUrl);
     const response = await fetch(fileUrl);
     const responseBuffer = await response.buffer();
 
-    const utime = response.headers.get('last-modified');
+    const utime = response.headers.get("last-modified");
     ctx.status = response.status;
     ctx.lastModified = utime ? new Date(utime) : new Date();
     ctx.type = path.extname(urlPath);
-    ctx.set('x-hit', 'fetch');
+    ctx.set("x-hit", "fetch");
     ctx.body = responseBuffer;
 
     if (ctx.status === 200 && !FILE_LOCK[bloomPath]) {
@@ -190,7 +194,7 @@ async function serverHandler(ctx: Context) {
 function createBufferProtocol(scheme: string) {
     const koaCallback = createKoaCallback();
     return async (request: ProtocolRequest, callback: (r: ProtocolResponse) => void) => {
-        const response: ProtocolResponse = {statusCode: null, headers: {}, data: null};
+        const response: ProtocolResponse = { statusCode: null, headers: {}, data: null };
         const req = {
             url: "http" + request.url.slice(scheme.length),
             method: request.method,
@@ -198,7 +202,7 @@ function createBufferProtocol(scheme: string) {
             body: request.uploadData?.[0].bytes
         };
         if (new URL(request.url).hostname !== LOCAL_HOSTNAME) {
-            const res = await fetch(req.url, {method: req.method, headers: req.headers, body: req.body});
+            const res = await fetch(req.url, { method: req.method, headers: req.headers, body: req.body });
             callback({
                 statusCode: res.status,
                 headers: res.headers.raw(),
@@ -221,19 +225,19 @@ function createBufferProtocol(scheme: string) {
             },
             end(data: Buffer) {
                 response.data = data;
-                console.log("Protocol", `${response.statusCode} ${req.url} ${response.data.length ?? ''}`);
+                console.log("Protocol", `${response.statusCode} ${req.url} ${response.data.length ?? ""}`);
                 callback(response);
-            }
-        }
-        console.log("Protocol", `${req.method} ${req.url} ${req.body?.length ?? ''}`);
+            },
+        };
+        console.log("Protocol", `${req.method} ${req.url} ${req.body?.length ?? ""}`);
         koaCallback(req as never, res as never).catch();
-    }
+    };
 }
 
 //写文件
 async function writeWithCipher(urlPath: string, filePath: string, buffer: Buffer, mtime: string | null) {
-    const algorithm = 'aes-192-cbc';
-    const key = crypto.scryptSync(urlPath, 'salt', 24);
+    const algorithm = "aes-192-cbc";
+    const key = crypto.scryptSync(urlPath, "salt", 24);
     const cipher = crypto.createCipheriv(algorithm, key, Buffer.alloc(16, 0));
     const data = Buffer.concat([cipher.update(buffer), cipher.final()]);
     return asyncCacheFile(urlPath, filePath, data, mtime);
@@ -241,8 +245,8 @@ async function writeWithCipher(urlPath: string, filePath: string, buffer: Buffer
 
 //读文件
 async function readWithDecipher(urlPath: string, filePath: string) {
-    const algorithm = 'aes-192-cbc';
-    const key = crypto.scryptSync(urlPath, 'salt', 24);
+    const algorithm = "aes-192-cbc";
+    const key = crypto.scryptSync(urlPath, "salt", 24);
     const decipher = crypto.createDecipheriv(algorithm, key, Buffer.alloc(16, 0));
     return new Promise((resolve, reject) => {
         const PREFIX = "read-file: ";
@@ -253,8 +257,8 @@ async function readWithDecipher(urlPath: string, filePath: string) {
             }
             const buffer = Buffer.concat([decipher.update(data), decipher.final()]);
             resolve(buffer);
-        })
-    })
+        });
+    });
 }
 
 //异步缓存文件
@@ -264,10 +268,10 @@ async function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer,
         const cacheFile = (retry: boolean) => {
             fs.writeFile(filePath, buffer, (err) => {
                 if (err) {
-                    if (err.code === 'ENOENT' && retry) {
+                    if (err.code === "ENOENT" && retry) {
                         const dir = path.dirname(filePath);
-                        console.log(PREFIX + 'mkdir:' + dir);
-                        fs.mkdir(dir, {recursive: true}, err => {
+                        console.log(PREFIX + "mkdir:" + dir);
+                        fs.mkdir(dir, { recursive: true }, (err) => {
                             if (err) {
                                 console.error(PREFIX + "mkdir error", dir, err);
                                 reject(err);
@@ -287,13 +291,13 @@ async function asyncCacheFile(urlPath: string, filePath: string, buffer: Buffer,
                             console.error(PREFIX + "file utime error", urlPath, err);
                             reject(err);
                         }
-                    })
+                    });
                 }
-                console.log(PREFIX + 'write:' + urlPath);
+                console.log(PREFIX + "write:" + urlPath);
                 reportMetric(CacheMetricKey.Cache);
                 resolve(null);
             });
-        }
+        };
         cacheFile(true);
     });
 }
@@ -304,8 +308,8 @@ async function asyncCheckCache(urlPath: string, filePath: string, mtime: number)
     const PREFIX = "async-check-file: ";
     const response = await fetch(SEER2_MEE_URL + urlPath, {
         headers: {
-            'If-Modified-Since': new Date(mtime).toUTCString()
-        }
+            "If-Modified-Since": new Date(mtime).toUTCString()
+        },
     });
     if (response.status === 304) {
         console.log(PREFIX + "file not change", urlPath);
@@ -316,7 +320,7 @@ async function asyncCheckCache(urlPath: string, filePath: string, mtime: number)
         console.log(PREFIX + "status not success", urlPath);
         return;
     }
-    const utime = response.headers.get('last-modified');
+    const utime = response.headers.get("last-modified");
     if (utime && new Date(utime).valueOf() === mtime) {
         console.log(PREFIX + "mtime not change", urlPath);
         reportMetric(CacheMetricKey.Unchanged);
@@ -329,4 +333,4 @@ async function asyncCheckCache(urlPath: string, filePath: string, mtime: number)
     await writeWithCipher(urlPath, filePath, responseBuffer, utime);
 }
 
-export const appServer = {start, close, listening, locking, createBufferProtocol};
+export const appServer = { start, close, listening, locking, createBufferProtocol };

@@ -1,18 +1,18 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
 export function md5(data: string) {
-    return crypto.createHash('md5').update(data).digest('hex');
+    return crypto.createHash("md5").update(data).digest("hex");
 }
 
 export function bloom(data: string) {
     const split = data.split("\n");
     const func_num = parseInt(split[1]);
-    const buffer = Buffer.from(split[2], 'base64');
+    const buffer = Buffer.from(split[2], "base64");
     const bloom: boolean[] = [];
     for (let i = 0; i < buffer.length; i++) {
         const num = buffer[i];
         for (let j = 0; j < 8; j++) {
-            bloom.push((num >> j & 1) === 1);
+            bloom.push(((num >> j) & 1) === 1);
         }
     }
     return function (data: string) {
@@ -22,7 +22,7 @@ export function bloom(data: string) {
         let combinedHash = hash1;
         for (let i = 0; i < func_num; i++) {
             //js feature :(
-            combinedHash &= BigInt(0xFFFFFFFF);
+            combinedHash &= BigInt(0xffffffff);
             if (!bloom[Number(combinedHash % BigInt(bloom.length))]) {
                 return false;
             }
