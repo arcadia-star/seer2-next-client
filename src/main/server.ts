@@ -20,7 +20,7 @@ import {
     runtime,
     SEER2_MEE_URL,
     SEER2_PATH,
-    SEER2_PORT
+    SEER2_PORT,
 } from "./runtime";
 import { userData } from "./userdata";
 import { md5 } from "./utils";
@@ -199,14 +199,14 @@ function createBufferProtocol(scheme: string) {
             url: "http" + request.url.slice(scheme.length),
             method: request.method,
             headers: request.headers,
-            body: request.uploadData?.[0].bytes
+            body: request.uploadData?.[0].bytes,
         };
         if (new URL(request.url).hostname !== LOCAL_HOSTNAME) {
             const res = await fetch(req.url, { method: req.method, headers: req.headers, body: req.body });
             callback({
                 statusCode: res.status,
                 headers: res.headers.raw(),
-                data: await res.buffer()
+                data: await res.buffer(),
             });
             return;
         }
@@ -308,7 +308,7 @@ async function asyncCheckCache(urlPath: string, filePath: string, mtime: number)
     const PREFIX = "async-check-file: ";
     const response = await fetch(SEER2_MEE_URL + urlPath, {
         headers: {
-            "If-Modified-Since": new Date(mtime).toUTCString()
+            "If-Modified-Since": new Date(mtime).toUTCString(),
         },
     });
     if (response.status === 304) {

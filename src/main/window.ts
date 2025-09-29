@@ -45,7 +45,7 @@ async function confirm(title: string, message: string) {
         defaultId: 0,
         cancelId: 1,
         title,
-        message
+        message,
     });
     return result.response === 0;
 }

@@ -10,7 +10,7 @@ export const SEER2_MEE_URL = "http://seer2.61.com";
 
 export const FLASH_POLICY_PATH = "/crossdomain.xml";
 export const FLASH_POLICY_DATA =
-    "<?xml version=\"1.0\"?><!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\"><cross-domain-policy><allow-access-from domain=\"*\" /></cross-domain-policy>";
+    '<?xml version="1.0"?><!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd"><cross-domain-policy><allow-access-from domain="*" /></cross-domain-policy>';
 
 export const MAGIC_PATH = "/seer2-next-client-hello";
 export const BLOOM_PATH = "/config/bloom-path.data";
@@ -88,7 +88,7 @@ export const cacheMetric: {
         [CacheMetricKey.Checked]: 0,
         [CacheMetricKey.Unchanged]: 0,
         [CacheMetricKey.Changed]: 0,
-        [CacheMetricKey.Proxy]: 0
+        [CacheMetricKey.Proxy]: 0,
     },
 };
 

@@ -18,10 +18,10 @@ export const config: { menus: DynMenu[] } = {
                 { label: "原神，启动！", url: "https://ys.mihoyo.com/cloud/" },
                 {
                     label: "★下载更新",
-                    externalUrl: "https://github.com/arcadia-star/seer2-next-client-release/releases"
+                    externalUrl: "https://github.com/arcadia-star/seer2-next-client-release/releases",
                 },
                 { label: "★下载更新(网盘)", externalUrl: "https://www.123865.com/s/QwODjv-AjoJh" },
-                { label: "退出", role: "close" }
+                { label: "退出", role: "close" },
             ],
         },
         {
@@ -32,7 +32,7 @@ export const config: { menus: DynMenu[] } = {
                 { label: "缩放=", role: "resetZoom" },
                 { label: "缩放+", role: "zoomIn" },
                 { label: "缩放-", role: "zoomOut" },
-                { label: "关于", role: "about" }
+                { label: "关于", role: "about" },
             ],
         },
     ],

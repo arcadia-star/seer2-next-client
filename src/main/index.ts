@@ -16,7 +16,7 @@ import {
     PPAPI_FLASH_PATH,
     queryMetric,
     runtime,
-    SEER2_PATH
+    SEER2_PATH,
 } from "./runtime";
 import { appServer } from "./server";
 import { syncUserData, userData } from "./userdata";
@@ -30,7 +30,7 @@ protocol.registerSchemesAsPrivileged([
             standard: true,
             secure: true,
             allowServiceWorkers: true,
-            supportFetchAPI: true
+            supportFetchAPI: true,
         },
     },
 ]);
