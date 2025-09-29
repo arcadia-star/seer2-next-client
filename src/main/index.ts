@@ -31,8 +31,8 @@ protocol.registerSchemesAsPrivileged([
             secure: true,
             allowServiceWorkers: true,
             supportFetchAPI: true
-        }
-    }
+        },
+    },
 ]);
 
 app.commandLine.appendSwitch("ppapi-flash-path", PPAPI_FLASH_PATH);
@@ -92,7 +92,7 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
                         init().catch((err) => {
                             dialog.showErrorBox("操作失败", err.message);
                         });
-                    }
+                    },
                 },
                 {
                     label: "清空缓存(文件缓存)⚠️",
@@ -103,9 +103,9 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
                         fs.rmdir(APP_GAME_CACHE_PATH, { recursive: true }, (err) => {
                             err && dialog.showErrorBox("操作失败", err.message);
                         });
-                    }
-                }
-            ]
+                    },
+                },
+            ],
         },
         {
             label: (appServer.locking() ? "❓" : appServer.listening() ? "✅" : "❌") + "本地服务",
