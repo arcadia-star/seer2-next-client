@@ -26,6 +26,6 @@ jobs:
           node-version: 21
 
       - name: Build/release Electron app
-        run: pnpm i && pnpm run release
+        run: npm install -g pnpm@latest-10 && pnpm i && pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.SEER2_NEXT_CLIENT_RELEASE_GH_TOKEN }}
