@@ -4,7 +4,7 @@ import {Configuration} from "electron-builder";
 const config: Configuration = {
     artifactName: "${productName}-Setup-${version}-${arch}.${ext}",
     files: [
-        "out/main/index.js"
+        "out"
     ],
     win: {
         target: [

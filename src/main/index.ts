@@ -80,6 +80,7 @@ function updateWindowMenu() {
             label: `🍪\
 hit:${queryMetric(CacheMetricKey.Hit)}, \
 expired:${queryMetric(CacheMetricKey.Expired)}, \
+fetch:${queryMetric(CacheMetricKey.Fetch)}, \
 cached:${queryMetric(CacheMetricKey.Cache)}, \
 checked:${queryMetric(CacheMetricKey.Checked)}, \
 unchanged:${queryMetric(CacheMetricKey.Unchanged)}, \

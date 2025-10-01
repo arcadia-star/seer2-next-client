@@ -170,6 +170,7 @@ async function serverHandler(ctx: Context) {
         bloomPath +
         (ctx.request.querystring ? "?" + ctx.request.querystring : "");
     console.log("fetch: " + fileUrl);
+    reportMetric(CacheMetricKey.Fetch);
     const response = await fetch(fileUrl);
     const responseBuffer = await response.buffer();
 
@@ -180,7 +181,7 @@ async function serverHandler(ctx: Context) {
     ctx.set("x-hit", "fetch");
     ctx.body = responseBuffer;
 
-    if (ctx.status === 200 && !FILE_LOCK[bloomPath]) {
+    if (response.status === 200 && !FILE_LOCK[bloomPath]) {
         try {
             FILE_LOCK[bloomPath] = true;
             writeWithCipher(bloomPath, filePath, responseBuffer, utime).catch(console.error);

@@ -76,6 +76,7 @@ export enum CacheMetricKey {
     Unchanged,
     Changed,
     Proxy,
+    Fetch,
 }
 
 export const cacheMetric: {
@@ -90,6 +91,7 @@ export const cacheMetric: {
         [CacheMetricKey.Unchanged]: 0,
         [CacheMetricKey.Changed]: 0,
         [CacheMetricKey.Proxy]: 0,
+        [CacheMetricKey.Fetch]: 0,
     },
 };
 
