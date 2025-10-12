@@ -149,16 +149,37 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
             },
         },
         {
-            label: `🎬${userData.ppapiFlash}`,
-            submenu: PPAPI_FLASH_DLLS.map((name) => ({
-                label: name + (name === userData.ppapiFlash ? "✅" : ""),
-                click: async () => {
-                    userData.ppapiFlash = name;
-                    await syncUserData();
-                    app.relaunch();
-                    app.quit();
+            label: "🛠️扩展功能",
+            submenu: [
+                {
+                    label: (protocol.isProtocolIntercepted(LOCAL_PROTOCOL) ? "✅" : "❌") + "HTTP拦截",
+                    click: () => {
+                        if (protocol.isProtocolIntercepted(LOCAL_PROTOCOL)) {
+                            protocol.uninterceptProtocol(LOCAL_PROTOCOL);
+                        } else {
+                            protocol.interceptBufferProtocol(
+                                LOCAL_PROTOCOL,
+                                appServer.createBufferProtocol(LOCAL_PROTOCOL),
+                            );
+                        }
+                        updateWindowMenu();
+                    },
                 },
-            })),
+                {
+                    label: `🎬${userData.ppapiFlash}`,
+                    submenu: PPAPI_FLASH_DLLS.map((name) => ({
+                        label: name,
+                        click: async () => {
+                            userData.ppapiFlash = name;
+                            await syncUserData();
+                            app.relaunch();
+                            app.quit();
+                        },
+                        type: "radio",
+                        checked: name === userData.ppapiFlash,
+                    })),
+                },
+            ],
         },
     ]);
     Menu.setApplicationMenu(menu);

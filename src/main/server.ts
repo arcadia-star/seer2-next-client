@@ -197,7 +197,7 @@ function createBufferProtocol(scheme: string) {
     return async (request: ProtocolRequest, callback: (r: ProtocolResponse) => void) => {
         const response: ProtocolResponse = { statusCode: null, headers: {}, data: null };
         const req = {
-            url: "http" + request.url.slice(scheme.length),
+            url: request.url,
             method: request.method,
             headers: request.headers,
             body: request.uploadData?.[0].bytes,
