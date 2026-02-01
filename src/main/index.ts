@@ -204,24 +204,19 @@ async function init() {
     const address = await dnsLookup(DNS_ROOT);
     runtime.rootUrl = `http://${address}${SEER2_PATH}`;
 
-    const bloomText = await fetch(runtime.rootUrl + BLOOM_PATH)
+    let bloomContains;
+    const bloomText = await fetch(`http://${address}$/seer2` + BLOOM_PATH)
         .catch(() => Promise.reject(new Error("版控文件加载失败，请检查网络后重试")))
         .then((e) => e.text());
     try {
-        runtime.bloomContains = bloom(bloomText);
+        bloomContains = bloom(bloomText);
     } catch {
         return Promise.reject(new Error("版控文件解析失败，请联系项目组反馈"));
     }
 
     //强版控
-    if (!runtime.bloomContains("/version/seer2-next-client/v" + APP_VERSION)) {
+    if (!bloomContains("/version/seer2-next-client/v" + APP_VERSION)) {
         await shell.openExternal("https://github.com/arcadia-star/seer2-next-client-release/releases").catch();
         return Promise.reject(new Error("当前版本已被禁用，建议下载最新版本"));
     }
-
-    //客户端配置文件
-    await fetch(runtime.rootUrl + CLIENT_CONFIG_PATH)
-        .then((e) => e.json())
-        .then((e) => (config.menus = e.menus))
-        .catch();
 }

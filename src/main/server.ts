@@ -25,6 +25,8 @@ import {
 import { userData } from "./userdata";
 import { md5 } from "./utils";
 
+import { fullscreen, html, swfObject } from "./jl";
+
 const server: { inner?: Server; lock?: boolean } = {};
 const FILE_LOCK: Record<string, boolean> = {};
 
@@ -131,6 +133,21 @@ async function serverHandler(ctx: Context) {
         }
     }
     const bloomPath = urlPath.slice(SEER2_PATH.length);
+    if (urlPath === new URL(LOCAL_ENTRY_URL).pathname) {
+        ctx.type = "html";
+        ctx.body = Buffer.from(html);
+        return;
+    }
+    if (bloomPath === "/static/swfobject.js") {
+        ctx.type = "js";
+        ctx.body = Buffer.from(swfObject);
+        return;
+    }
+    if (bloomPath === "/static/fullscreen.js") {
+        ctx.type = "js";
+        ctx.body = Buffer.from(fullscreen);
+        return;
+    }
     if (bloomPath === BLOOM_PATH) {
         ctx.status = 403;
         return;

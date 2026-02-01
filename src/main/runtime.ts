@@ -4,9 +4,9 @@ import path from "path";
 import { userData } from "./userdata";
 
 export const DNS_ROOT = "next-client-root.733702.xyz";
-export const SEER2_PATH = "/seer2";
+export const SEER2_PATH = "/jl";
 export const SEER2_PORT = 7337;
-export const SEER2_MEE_URL = "http://seer2.61.com";
+export const SEER2_MEE_URL = "http://jl.61.com";
 
 export const FLASH_POLICY_PATH = "/crossdomain.xml";
 export const FLASH_POLICY_DATA =
@@ -16,7 +16,7 @@ export const MAGIC_PATH = "/seer2-next-client-hello";
 export const BLOOM_PATH = "/config/bloom-path.data";
 export const CLIENT_CONFIG_PATH = "/config/seer2-next-client-config.json";
 export const LOCAL_PROTOCOL = "http";
-export const LOCAL_HOSTNAME = "seer2.client";
+export const LOCAL_HOSTNAME = "jl.client";
 export const LOCAL_MAGIC_URL = `${LOCAL_PROTOCOL}://${LOCAL_HOSTNAME}${MAGIC_PATH}`;
 export const LOCAL_ENTRY_URL = `${LOCAL_PROTOCOL}://${LOCAL_HOSTNAME}${SEER2_PATH}/play-local.html`;
 export const LOCAL_ENTRY_URL_WITH_VERSION = `${LOCAL_ENTRY_URL}?version=${app.getVersion()}&platform=${process.platform}&arch=${process.arch}`;
@@ -31,7 +31,7 @@ export const PPAPI_FLASH_DLLS = ppapiFlashDlls();
 export const PPAPI_FLASH_PATH = ppapiFlashPath();
 
 export const WINDOW_ICON = nativeImage.createFromPath(`${APP_RUNTIME_PATH}/icons/256x256.png`);
-export const WINDOW_TITLE = `阿卡迪亚:传说 by 改服项目组 v${APP_VERSION} ${process.platform}-${process.arch}`;
+export const WINDOW_TITLE = `热血精灵派登录器 by 改服项目组 v${APP_VERSION} ${process.platform}-${process.arch}`;
 
 function resourcesPath() {
     switch (process.platform) {
