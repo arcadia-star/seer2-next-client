@@ -12,7 +12,7 @@
   },
   "author": "ukuq",
   "license": "MIT",
-  "description": "seer2",
+  "description": "jl",
   "devDependencies": {
     "@types/electron-json-storage": "^4.5.4",
     "@types/koa": "^3.0.0",
