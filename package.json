@@ -29,5 +29,11 @@
   "dependencies": {
     "koa": "^2.16.2",
     "node-fetch": "^2.7.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
   }
 }
