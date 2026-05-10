@@ -1,0 +1,52 @@
+{
+  "appId": "com.arcadiastar.seer2nextclient",
+  "files": [
+    "out",
+    "!dist/**",
+    "!dist-dual/**"
+  ],
+  "directories": {
+    "output": "dist"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "ia32"
+        ]
+      }
+    ],
+    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
+    "icon": "build/icon.ico",
+    "requestedExecutionLevel": "asInvoker",
+    "extraResources": [
+      {
+        "from": "runtime/icons",
+        "to": "runtime/icons"
+      },
+      {
+        "from": "runtime/win32/ia32",
+        "to": "runtime/win32/ia32"
+      },
+      {
+        "from": "speedhook/speedhook_ce_ia32.dll",
+        "to": "speedhook/speedhook_ce_ia32.dll"
+      },
+      {
+        "from": "resources/speed-overlay.html",
+        "to": "speed-overlay.html"
+      },
+      {
+        "from": "speedhook/ce_injector.exe",
+        "to": "speedhook/ce_injector.exe"
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true
+  }
+}

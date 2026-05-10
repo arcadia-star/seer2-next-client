@@ -30,6 +30,10 @@ function reload() {
     mainWindow?.reload();
 }
 
+function getWindow(): BrowserWindow | null {
+    return mainWindow ?? null;
+}
+
 function close() {
     if (mainWindow) {
         return;
@@ -50,4 +54,4 @@ async function confirm(title: string, message: string) {
     return result.response === 0;
 }
 
-export const appWindow = { create, load, reload, close, confirm };
+export const appWindow = { create, load, reload, close, confirm, getWindow };
