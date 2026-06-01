@@ -5,6 +5,7 @@ export const USER_DATA_CONFIG_KEY = "userConfig2";
 export type UserData = {
     proxyFileRoot?: string;
     ppapiFlash?: string;
+    alwaysOnTop?: boolean;
 };
 
 function readSync(): UserData {
@@ -13,7 +14,7 @@ function readSync(): UserData {
     return data;
 }
 
-function write(data: UserData) {
+function write(data: UserData): Promise<UserData> {
     console.log("userData write:", data);
     return new Promise((resolve, reject) => {
         storage.set(USER_DATA_CONFIG_KEY, data, (error) => {
@@ -21,13 +22,14 @@ function write(data: UserData) {
                 reject(error);
                 return;
             }
-            resolve(null);
+            resolve(data);
         });
     });
 }
 
 export const userData = readSync();
 
-export function syncUserData() {
+export function modifyUserData(modify: (userData: UserData) => any) {
+    modify(userData);
     return write(userData);
 }
