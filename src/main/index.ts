@@ -20,7 +20,7 @@ import {
     SEER2_PATH,
 } from "./runtime";
 import { appServer } from "./server";
-import { syncUserData, userData } from "./userdata";
+import { modifyUserData, userData } from "./userdata";
 import { bloom } from "./utils";
 import { appWindow } from "./window";
 
@@ -134,18 +134,31 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
             label: userData.proxyFileRoot ? `✅本地代理(${userData.proxyFileRoot})` : "❌本地代理",
             click: async () => {
                 if (userData.proxyFileRoot) {
-                    userData.proxyFileRoot = null;
-                    syncUserData().catch((err: Error) => dialog.showErrorBox("数据同步失败", err.message));
+                    modifyUserData((e) => {
+                        e.proxyFileRoot = null;
+                    }).catch((err: Error) => dialog.showErrorBox("数据同步失败", err.message));
                 } else {
                     let dir = dialog.showOpenDialogSync({ properties: ["openDirectory"] });
                     console.info("open directory:" + dir);
                     if (dir) {
-                        userData.proxyFileRoot = dir[0];
-                        syncUserData().catch((err: Error) => dialog.showErrorBox("数据同步失败", err.message));
+                        modifyUserData((e) => {
+                            e.proxyFileRoot = dir[0];
+                        }).catch((err: Error) => dialog.showErrorBox("数据同步失败", err.message));
                     }
                 }
                 session.defaultSession.clearCache().catch();
                 updateWindowMenu();
+            },
+        },
+        {
+            label: (userData.alwaysOnTop ? "✅" : "❌") + "窗口置顶",
+            click: () => {
+                modifyUserData((e) => {
+                    e.alwaysOnTop = !e.alwaysOnTop;
+                }).then((e) => {
+                    appWindow.setAlwaysOnTop(e.alwaysOnTop);
+                    updateWindowMenu();
+                });
             },
         },
         {
@@ -170,10 +183,12 @@ changed:${queryMetric(CacheMetricKey.Changed)}\
                     submenu: PPAPI_FLASH_DLLS.map((name) => ({
                         label: name,
                         click: async () => {
-                            userData.ppapiFlash = name;
-                            await syncUserData();
-                            app.relaunch();
-                            app.quit();
+                            modifyUserData((e) => {
+                                e.ppapiFlash = name;
+                            }).then(() => {
+                                app.relaunch();
+                                app.quit();
+                            });
                         },
                         type: "radio",
                         checked: name === userData.ppapiFlash,

@@ -89,7 +89,7 @@ function locking() {
 
 function createKoaCallback() {
     const app = new Koa();
-    app.use(async function(ctx, next) {
+    app.use(async function (ctx, next) {
         await next();
         ctx.set("access-control-allow-origin", "*");
     });

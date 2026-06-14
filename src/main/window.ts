@@ -2,6 +2,7 @@ import { BrowserWindow, dialog } from "electron";
 import path from "path";
 
 import { WINDOW_ICON, WINDOW_TITLE } from "./runtime";
+import { userData } from "./userdata";
 
 let mainWindow: BrowserWindow;
 
@@ -17,6 +18,7 @@ function create() {
             plugins: true,
         },
         icon: WINDOW_ICON,
+        alwaysOnTop: userData.alwaysOnTop,
     }).on("page-title-updated", (evt) => {
         evt.preventDefault();
     });
@@ -50,4 +52,8 @@ async function confirm(title: string, message: string) {
     return result.response === 0;
 }
 
-export const appWindow = { create, load, reload, close, confirm };
+function setAlwaysOnTop(flag: boolean) {
+    mainWindow.setAlwaysOnTop(flag);
+}
+
+export const appWindow = { create, load, reload, close, confirm, setAlwaysOnTop };
