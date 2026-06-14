@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ windows-latest ]
+        os: [ windows-latest, macos-latest ]   # ✅ 添加 macOS runner
 
     steps:
       - name: Check out Git repository
@@ -30,3 +30,5 @@ jobs:
         run: npm install -g pnpm@latest-10 && pnpm i && pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.SEER2_NEXT_CLIENT_RELEASE_GH_TOKEN }}
+          # 如果不需要代码签名，可以添加下面这行避免因找不到证书而报错
+          CSC_IDENTITY_AUTO_DISCOVERY: false
