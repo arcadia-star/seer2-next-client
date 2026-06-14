@@ -1,5 +1,5 @@
 // electron-builder.config.ts
-import {Configuration} from "electron-builder";
+import { Configuration } from "electron-builder";
 
 const config: Configuration = {
     artifactName: "${productName}-Setup-${version}-${arch}.${ext}",
@@ -26,6 +26,22 @@ const config: Configuration = {
         perMachine: false,
         allowElevation: true,
         allowToChangeInstallationDirectory: true
+    },
+    mac: {
+        target: [
+            {
+                target: "dmg",
+                arch: [
+                    "x64",
+                    "arm64"
+                ]
+            }
+        ],
+        extraResources: [
+            "runtime/icons",
+            "runtime/darwin"
+        ]
+
     },
     publish: [
         {
