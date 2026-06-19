@@ -36,12 +36,16 @@ export const WINDOW_TITLE = `阿卡迪亚:传说 by 改服项目组 v${APP_VERSI
 function resourcesPath() {
     switch (process.platform) {
         case "win32":
-            return app.isPackaged ? path.resolve(app.getPath("exe"), "../resources") : app.getAppPath();
+        case "darwin":
+            return app.isPackaged ? process.resourcesPath : app.getAppPath();
     }
     throw "unknown platform:" + process.platform;
 }
 
 function ppapiFlashDlls() {
+    if (process.platform === "darwin") {
+        return fs.readdirSync(PPAPI_FLASH_FOLDER);
+    }
     return fs.readdirSync(PPAPI_FLASH_FOLDER).filter((e) => e.endsWith(".dll"));
 }
 
@@ -60,6 +64,7 @@ console.log("Chrome version:", process.versions.chrome);
 console.log("appResourcesPath:", APP_RESOURCES_PATH);
 console.log("ppapiFlashPath:", PPAPI_FLASH_PATH);
 console.log("gameCachePath:", APP_GAME_CACHE_PATH);
+console.log("resourcesPath:", process.resourcesPath);
 
 export type AppRuntime = {
     rootUrl?: string;

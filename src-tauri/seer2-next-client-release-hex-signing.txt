@@ -1,0 +1,3 @@
+keystore=C:\tmp\seer2-next-client-release-hex.p12
+alias=seer2-next-client-release
+password=59b6f12499374b8cf67f42525ce5cf59b254f8cf570be3f2fe1a7e58806429d7
