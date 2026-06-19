@@ -5,6 +5,10 @@
   "scripts": {
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
+    "tauri:frontend:dev": "vite --config vite.tauri.config.ts --host 127.0.0.1 --port 1420 --strictPort",
+    "tauri:frontend:build": "vite build --config vite.tauri.config.ts",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
     "fmt": "prettier --write src/",
     "prebuild": "electron-vite build",
     "build": "pnpm run prebuild && electron-builder --config electron-builder.config.ts",
@@ -14,6 +18,7 @@
   "license": "MIT",
   "description": "seer2",
   "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
     "@types/electron-json-storage": "^4.5.4",
     "@types/koa": "^3.0.0",
     "@types/node-fetch": "^2.6.13",
@@ -27,6 +32,7 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "@ruffle-rs/ruffle": "^0.3.0",
     "koa": "^2.16.2",
     "node-fetch": "^2.7.0"
   }
